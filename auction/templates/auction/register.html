@@ -1,0 +1,534 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Register | Online Auction System</title>
+
+<!-- Bootstrap 5 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<!-- Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+
+<style>
+    :root {
+        --auction-blue: #1a4fd6;
+        --auction-blue-dark: #123a9e;
+        --auction-blue-light: #eaf0ff;
+        --auction-gray: #6c757d;
+        --auction-bg: #f7f9fc;
+    }
+
+    body {
+        background-color: var(--auction-bg);
+        font-family: "Segoe UI", Roboto, Arial, sans-serif;
+        color: #1f2937;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* ---------- Navbar (same as Home / Login pages) ---------- */
+    .navbar-auction {
+        background-color: #ffffff;
+        border-bottom: 1px solid #e5e9f2;
+    }
+
+    .navbar-auction .navbar-brand {
+        font-weight: 700;
+        color: var(--auction-blue) !important;
+        letter-spacing: 0.3px;
+    }
+
+    .navbar-auction .navbar-brand i {
+        margin-right: 6px;
+    }
+
+    .navbar-auction .nav-link {
+        color: #374151 !important;
+        font-weight: 500;
+    }
+
+    .navbar-auction .nav-link.active,
+    .navbar-auction .nav-link:hover {
+        color: var(--auction-blue) !important;
+    }
+
+    /* ---------- Page layout ---------- */
+    .auth-wrapper {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 48px 16px;
+    }
+
+    .auth-card {
+        width: 100%;
+        max-width: 560px;
+        background: #ffffff;
+        border: 1px solid #e5e9f2;
+        border-radius: 14px;
+        box-shadow: 0 10px 30px rgba(26, 79, 214, 0.08);
+        padding: 40px 36px;
+    }
+
+    .auth-card .auth-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: var(--auction-blue-light);
+        color: var(--auction-blue);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        margin: 0 auto 16px auto;
+    }
+
+    .auth-card h1 {
+        font-size: 1.6rem;
+        font-weight: 700;
+        text-align: center;
+        margin-bottom: 4px;
+        color: #111827;
+    }
+
+    .auth-subtitle {
+        text-align: center;
+        color: var(--auction-gray);
+        font-size: 0.92rem;
+        margin-bottom: 28px;
+    }
+
+    .form-label {
+        font-weight: 600;
+        font-size: 0.88rem;
+        color: #374151;
+    }
+
+    .form-control, .form-select {
+        border-radius: 8px;
+        border: 1px solid #d7dce5;
+        padding: 10px 12px;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: var(--auction-blue);
+        box-shadow: 0 0 0 0.2rem rgba(26, 79, 214, 0.15);
+    }
+
+    .input-group .btn-toggle-password {
+        border: 1px solid #d7dce5;
+        border-left: none;
+        background: #fff;
+        color: var(--auction-gray);
+    }
+
+    .input-group .form-control {
+        border-right: none;
+    }
+
+    .input-group:focus-within .btn-toggle-password {
+        border-color: var(--auction-blue);
+    }
+
+    /* Role selection cards */
+    .role-option {
+        position: relative;
+    }
+
+    .role-option input.role-radio {
+        position: absolute;
+        opacity: 0;
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        cursor: pointer;
+    }
+
+    .role-option label {
+        display: block;
+        border: 1.5px solid #d7dce5;
+        border-radius: 10px;
+        padding: 14px 12px;
+        text-align: center;
+        font-weight: 600;
+        color: #374151;
+        cursor: pointer;
+        transition: all 0.15s ease-in-out;
+    }
+
+    .role-option label i {
+        display: block;
+        font-size: 1.3rem;
+        margin-bottom: 4px;
+        color: var(--auction-blue);
+    }
+
+    .role-option input.role-radio:checked + label {
+        border-color: var(--auction-blue);
+        background-color: var(--auction-blue-light);
+        color: var(--auction-blue-dark);
+    }
+
+    .role-option input.role-radio:focus-visible + label {
+        outline: 2px solid var(--auction-blue);
+        outline-offset: 2px;
+    }
+
+    .btn-auction-primary {
+        background-color: var(--auction-blue);
+        border-color: var(--auction-blue);
+        font-weight: 600;
+        padding: 10px 0;
+        border-radius: 8px;
+    }
+
+    .btn-auction-primary:hover,
+    .btn-auction-primary:focus {
+        background-color: var(--auction-blue-dark);
+        border-color: var(--auction-blue-dark);
+    }
+
+    .auth-footer-link {
+        text-align: center;
+        margin-top: 22px;
+        font-size: 0.9rem;
+        color: var(--auction-gray);
+    }
+
+    .auth-footer-link a {
+        color: var(--auction-blue);
+        font-weight: 600;
+        text-decoration: none;
+    }
+
+    .auth-footer-link a:hover {
+        text-decoration: underline;
+    }
+
+    .invalid-feedback {
+        font-size: 0.82rem;
+    }
+
+    .form-text {
+        font-size: 0.8rem;
+    }
+
+    .site-footer {
+        text-align: center;
+        font-size: 0.82rem;
+        color: var(--auction-gray);
+        padding: 18px 0;
+    }
+</style>
+</head>
+<body>
+
+<!-- ============ NAVBAR ============ -->
+<nav class="navbar navbar-expand-lg navbar-auction">
+    <div class="container">
+        <a class="navbar-brand" href="{% url 'home' %}">
+            <i class="bi bi-hammer"></i>AuctionHub
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navMenu">
+            <ul class="navbar-nav ms-auto align-items-lg-center">
+                <li class="nav-item"><a class="nav-link" href="{% url 'home' %}">Home</a></li>
+                <li class="nav-item"><a class="nav-link" href="{% url 'login' %}">Login</a></li>
+                <li class="nav-item"><a class="nav-link active" href="{% url 'register' %}">Register</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<!-- ============ REGISTRATION CARD ============ -->
+<div class="auth-wrapper">
+    <div class="auth-card">
+
+        <div class="auth-icon">
+            <i class="bi bi-person-plus"></i>
+        </div>
+        <h1>Create Your Account</h1>
+        <p class="auth-subtitle">Join AuctionHub as a buyer or seller.</p>
+
+        {% if messages %}
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }} py-2 px-3" role="alert">
+                {{ message }}
+            </div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- Success message placeholder (shown by the view after a successful save, or via messages framework) -->
+        {% if registration_success %}
+        <div class="alert alert-success py-2 px-3" role="alert">
+            <i class="bi bi-check-circle me-1"></i>
+            Account created successfully! You can now <a href="{% url 'login' %}">log in</a>.
+        </div>
+        {% endif %}
+
+        <!--
+            Form posts to the Django registration view. {% url 'register' %}
+            assumes a URL pattern named 'register'. Field names match the
+            Profile/User models (full_name, username, email, phone_number,
+            password, role) so this can be wired directly to a Django
+            ModelForm / UserCreationForm subclass.
+        -->
+        <form method="post" action="{% url 'register' %}" novalidate id="registerForm" class="needs-validation">
+            {% csrf_token %}
+
+            <!-- Full Name -->
+            <div class="mb-3">
+                <label for="id_full_name" class="form-label">Full Name</label>
+                <input
+                    type="text"
+                    class="form-control {% if form.full_name.errors %}is-invalid{% endif %}"
+                    id="id_full_name"
+                    name="full_name"
+                    placeholder="Enter your full name"
+                    value="{{ form.full_name.value|default_if_none:'' }}"
+                    required
+                    autofocus
+                >
+                <div class="invalid-feedback">
+                    {% if form.full_name.errors %}
+                        {{ form.full_name.errors|striptags }}
+                    {% else %}
+                        Please enter your full name.
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Username -->
+            <div class="mb-3">
+                <label for="id_username" class="form-label">Username</label>
+                <input
+                    type="text"
+                    class="form-control {% if form.username.errors %}is-invalid{% endif %}"
+                    id="id_username"
+                    name="username"
+                    placeholder="Choose a username"
+                    value="{{ form.username.value|default_if_none:'' }}"
+                    required
+                    minlength="4"
+                >
+                <div class="invalid-feedback">
+                    {% if form.username.errors %}
+                        {{ form.username.errors|striptags }}
+                    {% else %}
+                        Please choose a username (at least 4 characters).
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Email -->
+            <div class="mb-3">
+                <label for="id_email" class="form-label">Email Address</label>
+                <input
+                    type="email"
+                    class="form-control {% if form.email.errors %}is-invalid{% endif %}"
+                    id="id_email"
+                    name="email"
+                    placeholder="you@example.com"
+                    value="{{ form.email.value|default_if_none:'' }}"
+                    required
+                >
+                <div class="invalid-feedback">
+                    {% if form.email.errors %}
+                        {{ form.email.errors|striptags }}
+                    {% else %}
+                        Please enter a valid email address.
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Phone Number -->
+            <div class="mb-3">
+                <label for="id_phone_number" class="form-label">Phone Number</label>
+                <input
+                    type="tel"
+                    class="form-control {% if form.phone_number.errors %}is-invalid{% endif %}"
+                    id="id_phone_number"
+                    name="phone_number"
+                    placeholder="e.g. 9876543210"
+                    value="{{ form.phone_number.value|default_if_none:'' }}"
+                    pattern="^[0-9+\-\s]{7,15}$"
+                    maxlength="15"
+                    required
+                >
+                <div class="invalid-feedback">
+                    {% if form.phone_number.errors %}
+                        {{ form.phone_number.errors|striptags }}
+                    {% else %}
+                        Please enter a valid phone number.
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Password -->
+                <div class="col-md-6 mb-3">
+                    <label for="id_password" class="form-label">Password</label>
+                    <div class="input-group has-validation">
+                        <input
+                            type="password"
+                            class="form-control {% if form.password.errors %}is-invalid{% endif %}"
+                            id="id_password"
+                            name="password"
+                            placeholder="Create a password"
+                            minlength="8"
+                            required
+                        >
+                        <button class="btn btn-toggle-password" type="button" id="togglePassword" tabindex="-1" aria-label="Show password">
+                            <i class="bi bi-eye" id="togglePasswordIcon"></i>
+                        </button>
+                        <div class="invalid-feedback">
+                            {% if form.password.errors %}
+                                {{ form.password.errors|striptags }}
+                            {% else %}
+                                Minimum 8 characters.
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Confirm Password -->
+                <div class="col-md-6 mb-3">
+                    <label for="id_confirm_password" class="form-label">Confirm Password</label>
+                    <div class="input-group has-validation">
+                        <input
+                            type="password"
+                            class="form-control {% if form.confirm_password.errors %}is-invalid{% endif %}"
+                            id="id_confirm_password"
+                            name="confirm_password"
+                            placeholder="Re-enter your password"
+                            required
+                        >
+                        <button class="btn btn-toggle-password" type="button" id="toggleConfirmPassword" tabindex="-1" aria-label="Show password">
+                            <i class="bi bi-eye" id="toggleConfirmPasswordIcon"></i>
+                        </button>
+                        <div class="invalid-feedback" id="confirmPasswordFeedback">
+                            {% if form.confirm_password.errors %}
+                                {{ form.confirm_password.errors|striptags }}
+                            {% else %}
+                                Passwords do not match.
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- User Role -->
+            <div class="mb-4">
+                <label class="form-label d-block">User Role</label>
+                <div class="row g-2">
+                    <div class="col-6 role-option">
+                        <input
+                            class="role-radio"
+                            type="radio"
+                            name="role"
+                            id="role_buyer"
+                            value="BUYER"
+                            checked
+                            required
+                        >
+                        <label for="role_buyer">
+                            <i class="bi bi-bag"></i>
+                            Buyer
+                        </label>
+                    </div>
+                    <div class="col-6 role-option">
+                        <input
+                            class="role-radio"
+                            type="radio"
+                            name="role"
+                            id="role_seller"
+                            value="SELLER"
+                            required
+                        >
+                        <label for="role_seller">
+                            <i class="bi bi-shop"></i>
+                            Seller
+                        </label>
+                    </div>
+                </div>
+                <div class="form-text text-muted mt-1">
+                    Administrator accounts are created separately and are not available here.
+                </div>
+                {% if form.role.errors %}
+                <div class="text-danger small mt-1">{{ form.role.errors|striptags }}</div>
+                {% endif %}
+            </div>
+
+            <button type="submit" class="btn btn-auction-primary w-100">Create Account</button>
+        </form>
+
+        <div class="auth-footer-link">
+            Already have an account? <a href="{% url 'login' %}">Login</a>
+        </div>
+    </div>
+</div>
+
+<div class="site-footer">
+    &copy; 2026 AuctionHub &mdash; Online Auction System
+</div>
+
+<!-- Bootstrap 5 JS bundle -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    // ---------- Password visibility toggles ----------
+    function wireToggle(buttonId, inputId, iconId) {
+        const btn = document.getElementById(buttonId);
+        const input = document.getElementById(inputId);
+        const icon = document.getElementById(iconId);
+        btn.addEventListener('click', function () {
+            const isHidden = input.getAttribute('type') === 'password';
+            input.setAttribute('type', isHidden ? 'text' : 'password');
+            icon.classList.toggle('bi-eye');
+            icon.classList.toggle('bi-eye-slash');
+            btn.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+        });
+    }
+    wireToggle('togglePassword', 'id_password', 'togglePasswordIcon');
+    wireToggle('toggleConfirmPassword', 'id_confirm_password', 'toggleConfirmPasswordIcon');
+
+    // ---------- Client-side validation ----------
+    // Required fields, email format, and password confirmation match are
+    // checked here purely for UX. The Django view must re-validate
+    // everything server-side (uniqueness of username/email, password
+    // strength rules, etc.) before creating the User/Profile records.
+    const registerForm = document.getElementById('registerForm');
+    const password = document.getElementById('id_password');
+    const confirmPassword = document.getElementById('id_confirm_password');
+    const confirmFeedback = document.getElementById('confirmPasswordFeedback');
+
+    function checkPasswordsMatch() {
+        if (password.value !== confirmPassword.value) {
+            confirmPassword.setCustomValidity('Passwords do not match.');
+            confirmFeedback.textContent = 'Passwords do not match.';
+        } else {
+            confirmPassword.setCustomValidity('');
+        }
+    }
+
+    password.addEventListener('input', checkPasswordsMatch);
+    confirmPassword.addEventListener('input', checkPasswordsMatch);
+
+    registerForm.addEventListener('submit', function (event) {
+        checkPasswordsMatch();
+        if (!registerForm.checkValidity()) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        registerForm.classList.add('was-validated');
+    }, false);
+</script>
+
+</body>
+</html>
