@@ -44,7 +44,7 @@ def register(request):
 
     return render(
         request,
-        'auction/register.html',
+        'register.html',
         {'form': form}
     )
 
@@ -78,7 +78,7 @@ def login_view(request):
 
     return render(
         request,
-        'auction/login.html'
+        'login.html'
     )
 
 
