@@ -1,17 +1,24 @@
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.shortcuts import redirect, render
-from django.contrib.auth.decorators import login_required
 from .forms import RegistrationForm,ProfileForm
 from .models import Profile
 
 
+# =========================================================
+# REGISTER
+# =========================================================
+
 def register(request):
+
     if request.method == 'POST':
+
         form = RegistrationForm(request.POST)
 
         if form.is_valid():
+
             username = form.cleaned_data['username']
             email = form.cleaned_data['email']
             password = form.cleaned_data['password']
@@ -19,12 +26,14 @@ def register(request):
             phone_number = form.cleaned_data['phone_number']
             role = form.cleaned_data['role']
 
+            # Create Django user
             user = User.objects.create_user(
                 username=username,
                 email=email,
                 password=password
             )
 
+            # Create corresponding profile
             Profile.objects.create(
                 user=user,
                 full_name=full_name,
@@ -40,17 +49,26 @@ def register(request):
             return redirect('login')
 
     else:
+
         form = RegistrationForm()
 
     return render(
         request,
         'register.html',
-        {'form': form}
+        {
+            'form': form
+        }
     )
 
 
+# =========================================================
+# LOGIN
+# =========================================================
+
 def login_view(request):
+
     if request.method == 'POST':
+
         username = request.POST.get('username')
         password = request.POST.get('password')
 
@@ -61,20 +79,39 @@ def login_view(request):
         )
 
         if user is not None:
+
             login(request, user)
 
+            # Check whether the user has a Profile
             try:
+
                 role = user.profile.role
+
             except Profile.DoesNotExist:
-                messages.error(request, 'User profile not found.')
+
+                messages.error(
+                    request,
+                    'User profile not found.'
+                )
+
                 return redirect('login')
 
-            # For now, send all authenticated users
-            # to the existing dashboard preview.
-            if role in ['BUYER', 'SELLER', 'ADMIN']:
-                return redirect('dashboard_preview')
 
-        messages.error(request, 'Invalid username or password.')
+            # =================================================
+            # ROLE-BASED DASHBOARD
+            # =================================================
+
+            if role in ['BUYER', 'SELLER', 'ADMIN']:
+
+                return redirect('dashboard')
+
+
+        # Invalid credentials
+        messages.error(
+            request,
+            'Invalid username or password.'
+        )
+
 
     return render(
         request,
@@ -82,9 +119,71 @@ def login_view(request):
     )
 
 
+# =========================================================
+# DASHBOARD
+# =========================================================
+
+@login_required
+def dashboard(request):
+
+    """
+    Main authenticated user dashboard.
+
+    The dashboard will use the logged-in user's
+    database information.
+
+    No sample or hard-coded user data is created here.
+    """
+
+    user = request.user
+
+
+    # -----------------------------------------------------
+    # TEMPORARY BASIC CONTEXT
+    # -----------------------------------------------------
+    #
+    # We are intentionally starting with only the user.
+    #
+    # Once we match the dashboard queries to the exact
+    # fields in models.py, we will add:
+    #
+    # active_bids
+    # won_auctions
+    # my_products
+    # my_auctions
+    # ending_auctions
+    # notifications
+    #
+    # This prevents us from guessing your model fields.
+    # -----------------------------------------------------
+
+    context = {
+
+        'user': user,
+
+    }
+
+
+    return render(
+        request,
+        'dashboard.html',
+        context
+    )
+
+
+# =========================================================
+# LOGOUT
+# =========================================================
+
 def logout_view(request):
+
     logout(request)
-    messages.success(request, 'You have been logged out.')
+
+    messages.success(
+        request,
+        'You have been logged out.'
+    )
+
     return redirect('login')
 @login_required
 def profile(request):

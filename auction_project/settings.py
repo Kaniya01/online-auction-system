@@ -23,7 +23,10 @@ load_dotenv(BASE_DIR / '.env')
 # SECURITY
 # =========================================================
 
-SECRET_KEY = 'django-insecure-dtw&pr-rm=r4j77cn0%49p*0+l530ph0vt4_k25c=+ax@_tcu'
+SECRET_KEY = os.getenv(
+    'DJANGO_SECRET_KEY',
+    'django-insecure-development-key-change-in-production'
+)
 
 DEBUG = True
 
@@ -41,6 +44,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    # Our auction application
     'auction',
 ]
 
@@ -75,9 +80,8 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
 
-        # Look for HTML files inside:
-        # auction/templates/
-        'DIRS': [BASE_DIR / 'templates'],
+        # Templates are inside auction/templates/
+        'DIRS': [],
 
         'APP_DIRS': True,
 
@@ -92,10 +96,6 @@ TEMPLATES = [
 ]
 
 
-# =========================================================
-# WSGI
-# =========================================================
-
 WSGI_APPLICATION = 'auction_project.wsgi.application'
 
 
@@ -106,6 +106,7 @@ WSGI_APPLICATION = 'auction_project.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
+
         'NAME': os.getenv('DB_NAME'),
         'USER': os.getenv('DB_USER'),
         'PASSWORD': os.getenv('DB_PASSWORD'),
@@ -121,16 +122,24 @@ DATABASES = {
 
 AUTH_PASSWORD_VALIDATORS = [
     {
-        'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
+        'NAME':
+            'django.contrib.auth.password_validation.'
+            'UserAttributeSimilarityValidator',
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'NAME':
+            'django.contrib.auth.password_validation.'
+            'MinimumLengthValidator',
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+        'NAME':
+            'django.contrib.auth.password_validation.'
+            'CommonPasswordValidator',
     },
     {
-        'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
+        'NAME':
+            'django.contrib.auth.password_validation.'
+            'NumericPasswordValidator',
     },
 ]
 
@@ -141,7 +150,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Kolkata'
 
 USE_I18N = True
 
@@ -153,8 +162,29 @@ USE_TZ = True
 # =========================================================
 
 STATIC_URL = 'static/'
+
+
+# =========================================================
+# MEDIA FILES
+# =========================================================
+
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+
+# =========================================================
+# AUTHENTICATION REDIRECTS
+# =========================================================
+
+# Where unauthenticated users are sent when they
+# try to access a protected page such as /dashboard/
+LOGIN_URL = '/login/'
+
+# Where users go after successful login
+LOGIN_REDIRECT_URL = '/dashboard/'
+
+# Where users go after logout
+LOGOUT_REDIRECT_URL = '/login/'
 
 
 # =========================================================
