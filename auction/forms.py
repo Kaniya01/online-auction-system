@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.models import User
-
+from .models import Profile
 
 class RegistrationForm(forms.Form):
     username = forms.CharField(max_length=150)
@@ -55,3 +55,34 @@ class RegistrationForm(forms.Form):
                 )
 
         return cleaned_data
+
+
+
+class ProfileForm(forms.ModelForm):
+    class Meta:
+        model = Profile
+        fields = [
+            'full_name',
+            'phone_number',
+            'profile_picture',
+        ]
+
+        widgets = {
+            'full_name': forms.TextInput(
+                attrs={
+                    'class': 'form-control',
+                    'placeholder': 'Enter your full name',
+                }
+            ),
+            'phone_number': forms.TextInput(
+                attrs={
+                    'class': 'form-control',
+                    'placeholder': 'Enter your phone number',
+                }
+            ),
+            'profile_picture': forms.ClearableFileInput(
+                attrs={
+                    'class': 'form-control',
+                }
+            ),
+        }
