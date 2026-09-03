@@ -24,7 +24,6 @@ def register(request):
             password = form.cleaned_data['password']
             full_name = form.cleaned_data['full_name']
             phone_number = form.cleaned_data['phone_number']
-            role = form.cleaned_data['role']
 
             # Create Django user
             user = User.objects.create_user(
@@ -37,8 +36,7 @@ def register(request):
             Profile.objects.create(
                 user=user,
                 full_name=full_name,
-                phone_number=phone_number,
-                role=role
+                phone_number=phone_number
             )
 
             messages.success(
@@ -81,29 +79,7 @@ def login_view(request):
         if user is not None:
 
             login(request, user)
-
-            # Check whether the user has a Profile
-            try:
-
-                role = user.profile.role
-
-            except Profile.DoesNotExist:
-
-                messages.error(
-                    request,
-                    'User profile not found.'
-                )
-
-                return redirect('login')
-
-
-            # =================================================
-            # ROLE-BASED DASHBOARD
-            # =================================================
-
-            if role in ['BUYER', 'SELLER', 'ADMIN']:
-
-                return redirect('dashboard')
+            return redirect('dashboard')
 
 
         # Invalid credentials

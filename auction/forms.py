@@ -15,13 +15,6 @@ class RegistrationForm(forms.Form):
     full_name = forms.CharField(max_length=150)
     phone_number = forms.CharField(max_length=15)
 
-    role = forms.ChoiceField(
-        choices=[
-            ('BUYER', 'Buyer'),
-            ('SELLER', 'Seller'),
-        ]
-    )
-
     def clean_username(self):
         username = self.cleaned_data['username']
 
