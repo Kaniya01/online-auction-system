@@ -1173,3 +1173,174 @@ h3 {
     }
 
 }
+/* =====================================================
+   BUYER / SELLER MODE SWITCHER
+   ===================================================== */
+
+.mode-switcher {
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 20px 24px;
+    box-shadow: 0 6px 20px rgba(23, 33, 59, 0.08);
+}
+
+.mode-switcher-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.mode-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #707887;
+    margin-bottom: 4px;
+}
+
+.mode-switcher h3 {
+    margin: 0;
+    color: #17213b;
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.mode-buttons {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-mode {
+    border: 1px solid #d8dde8;
+    background: #ffffff;
+    color: #17213b;
+    font-weight: 600;
+    padding: 9px 18px;
+    border-radius: 8px;
+}
+
+.btn-mode:hover {
+    background: #f1f3f7;
+    color: #17213b;
+}
+
+.btn-mode-active {
+    background: #c99a3e;
+    border: 1px solid #c99a3e;
+    color: #17213b;
+    font-weight: 700;
+    padding: 9px 18px;
+    border-radius: 8px;
+}
+
+.btn-mode-active:hover {
+    background: #a77a25;
+    border-color: #a77a25;
+    color: #ffffff;
+}
+
+@media (max-width: 576px) {
+
+    .mode-switcher-content {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .mode-buttons {
+        width: 100%;
+    }
+
+    .mode-buttons .btn {
+        flex: 1;
+    }
+}
+/* =========================================================
+   AUCTION DATE & TIME FORM
+   ========================================================= */
+
+.auction-datetime-group {
+    background: #f8f9fc;
+    border: 1px solid #e1e5ec;
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 20px;
+}
+
+.auction-datetime-group label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: #17213b;
+    margin-bottom: 8px;
+}
+
+.auction-datetime-group input[type="datetime-local"] {
+    width: 100%;
+    min-height: 46px;
+    padding: 10px 12px;
+    border: 1px solid #d8dde8;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #17213b;
+    font-size: 14px;
+    font-family: 'Inter', sans-serif;
+    transition: border-color 0.2s ease,
+                box-shadow 0.2s ease;
+}
+
+.auction-datetime-group input[type="datetime-local"]:focus {
+    outline: none;
+    border-color: #c99a3e;
+    box-shadow: 0 0 0 3px rgba(201, 154, 62, 0.15);
+}
+
+.auction-datetime-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+}
+
+.auction-datetime-help {
+    display: block;
+    margin-top: 6px;
+    font-size: 12px;
+    color: #707887;
+}
+
+
+/* =========================================================
+   AUCTION FORM TITLE
+   ========================================================= */
+
+.auction-form-title {
+    color: #17213b;
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
+.auction-form-subtitle {
+    color: #707887;
+    font-size: 14px;
+    margin-bottom: 24px;
+}
+
+
+/* =========================================================
+   RESPONSIVE DATE/TIME FORM
+   ========================================================= */
+
+@media (max-width: 576px) {
+
+    .auction-datetime-row {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .auction-datetime-group {
+        padding: 15px;
+    }
+
+}

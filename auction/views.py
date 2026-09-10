@@ -3,6 +3,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.shortcuts import redirect, render
+from django.utils import timezone
 
 from .forms import RegistrationForm, ProfileForm, ProductForm, AuctionForm
 from .models import Profile, Product, Auction
@@ -92,55 +93,75 @@ def login_view(request):
         'login.html'
     )
 
+def update_auction_statuses():
+    """
+    Automatically update auction status based on
+    start_time and end_time.
+    """
+
+    now = timezone.now()
+
+    auctions = Auction.objects.all()
+
+    for auction in auctions:
+
+        if now < auction.start_time:
+            new_status = 'SCHEDULED'
+
+        elif auction.start_time <= now < auction.end_time:
+            new_status = 'ACTIVE'
+
+        else:
+            new_status = 'CLOSED'
+
+        if auction.status != new_status:
+            auction.status = new_status
+            auction.save(update_fields=['status'])
 
 # =========================================================
 # DASHBOARD
 # =========================================================
-
 @login_required
 def dashboard(request):
-
     """
     Main authenticated user dashboard.
 
-    The dashboard will use the logged-in user's
-    database information.
-
-    No sample or hard-coded user data is created here.
+    Every logged-in user can switch between:
+    BUYER mode and SELLER mode.
+    The selected mode is stored in the session,
+    so no database changes are required.
     """
+    update_auction_statuses()
 
     user = request.user
 
+    # Get the current mode from the session.
+    # New users start in Buyer mode.
+    mode = request.session.get('mode', 'BUYER')
+
     # -----------------------------------------------------
-    # TEMPORARY BASIC CONTEXT
-    # -----------------------------------------------------
-    #
-    # We are intentionally starting with only the user.
-    #
-    # Once we match the dashboard queries to the exact
-    # fields in models.py, we will add:
-    #
-    # active_bids
-    # won_auctions
-    # my_products
-    # my_auctions
-    # ending_auctions
-    # notifications
-    #
-    # This prevents us from guessing your model fields.
+    # SELLER DATA
     # -----------------------------------------------------
 
     my_products = Product.objects.filter(
-       seller=request.user
-    )
-
-    my_auctions = Auction.objects.filter(
-       product__seller=request.user
+        seller=request.user
     ).order_by('-created_at')
 
-    context = {
-       'user': user,
+    my_auctions = Auction.objects.filter(
+        product__seller=request.user
+    ).order_by('-created_at')
 
+    # -----------------------------------------------------
+    # DASHBOARD CONTEXT
+    # -----------------------------------------------------
+
+    context = {
+        'user': user,
+
+        # Current mode
+        'mode': mode,
+
+        # Seller data
         'my_products_count': my_products.count(),
         'my_auctions_count': my_auctions.count(),
         'my_products': my_products,
@@ -152,8 +173,23 @@ def dashboard(request):
         'dashboard.html',
         context
     )
+#=========================================================
+# SWITCH MODE
+#=========================================================
+@login_required
+def switch_mode(request, mode):
+    """
+    Switch the logged-in user's dashboard mode.
 
+    Mode is stored in the session, not the database.
+    """
 
+    mode = mode.upper()
+
+    if mode in ['BUYER', 'SELLER']:
+        request.session['mode'] = mode
+
+    return redirect('dashboard')
 # =========================================================
 # LOGOUT
 # =========================================================
@@ -258,6 +294,44 @@ def add_product(request):
         {'form': form}
     )
 @login_required
+def edit_product(request, product_id):
+
+    product = Product.objects.get(
+        id=product_id,
+        seller=request.user
+    )
+
+    if request.method == 'POST':
+
+        form = ProductForm(
+            request.POST,
+            instance=product
+        )
+
+        if form.is_valid():
+
+            form.save()
+
+            messages.success(
+                request,
+                'Product updated successfully!'
+            )
+
+            return redirect('seller_products')
+
+    else:
+
+        form = ProductForm(instance=product)
+
+    return render(
+        request,
+        'edit_product.html',
+        {
+            'form': form,
+            'product': product,
+        }
+    )
+@login_required
 def create_auction(request, product_id):
     product = Product.objects.get(
         id=product_id,
@@ -280,7 +354,7 @@ def create_auction(request, product_id):
                 'Auction created successfully!'
             )
 
-            return redirect('seller_products')
+            return redirect('dashboard')
 
     else:
         form = AuctionForm()

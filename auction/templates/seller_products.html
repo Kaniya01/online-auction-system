@@ -1,196 +1,619 @@
+{% load static %}
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>My Products | AuctionHub</title>
+    <title>My Products</title>
 
+    <!-- Bootstrap -->
     <link
         href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
         rel="stylesheet"
     >
 
+    <!-- Dashboard CSS -->
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+
     <style>
+        /* =========================================
+           MY PRODUCTS PAGE
+           ========================================= */
+
         body {
-            background-color: #f6f7f9;
+            background: #f5f6f8;
+            color: #17213b;
         }
 
-        .container {
-            max-width: 1000px;
+        .products-page {
+            max-width: 950px;
+            margin: 0 auto;
+            padding: 60px 20px;
         }
+
+        /* Back button */
+
+        .back-dashboard-btn {
+            display: inline-block;
+            margin-bottom: 24px;
+            padding: 9px 17px;
+
+            background: #ffffff;
+            color: #17213b;
+
+            border: 1px solid #d8dde8;
+            border-radius: 8px;
+
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+
+            transition: all 0.2s ease;
+        }
+
+        .back-dashboard-btn:hover {
+            background: #c99a3e;
+            border-color: #c99a3e;
+            color: #17213b;
+            text-decoration: none;
+        }
+
+        /* Page heading */
+
+        .products-page h1 {
+            margin-bottom: 8px;
+
+            color: #17213b;
+            font-size: 48px;
+            font-weight: 500;
+        }
+
+        .page-description {
+            margin-bottom: 40px;
+
+            color: #707887;
+            font-size: 17px;
+        }
+
+        /* Product card */
 
         .product-card {
-            background: white;
-            border-radius: 14px;
-            padding: 25px;
-            margin-bottom: 25px;
-            box-shadow: 0 8px 24px rgba(23, 33, 59, 0.08);
+            background: #ffffff;
+
+            border-radius: 18px;
+
+            padding: 32px;
+
+            margin-bottom: 30px;
+
+            box-shadow: 0 8px 25px rgba(23, 33, 59, 0.08);
+
+            transition: transform 0.2s ease,
+                        box-shadow 0.2s ease;
         }
 
-        h1 {
+        .product-card:hover {
+            transform: translateY(-2px);
+
+            box-shadow: 0 12px 30px rgba(23, 33, 59, 0.12);
+        }
+
+        .product-name {
+            margin-bottom: 12px;
+
+            color: #17213b;
+
+            font-size: 30px;
+            font-weight: 700;
+        }
+
+        .product-detail {
+            margin-bottom: 20px;
+
+            color: #17213b;
+
+            font-size: 16px;
+        }
+
+        .product-detail strong {
+            font-weight: 700;
+        }
+
+        .product-description {
+            margin-bottom: 20px;
+        }
+
+        .starting-price {
+            margin-bottom: 25px;
+        }
+
+        /* Auction status */
+
+        .auction-status {
+            margin: 20px 0;
+            padding: 12px 15px;
+
+            border-radius: 8px;
+
+            background: #fff8e8;
+
+            color: #c99a3e;
+
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        /* Buttons */
+
+        .product-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .btn-create-auction {
+            display: inline-block;
+
+            padding: 11px 18px;
+
+            background: #c99a3e;
+            color: #17213b;
+
+            border-radius: 8px;
+
+            text-decoration: none;
+
+            font-weight: 700;
+
+            transition: all 0.2s ease;
+        }
+
+        .btn-create-auction:hover {
+            background: #a77a25;
+            color: #ffffff;
+        }
+
+        .btn-edit-product {
+            display: inline-block;
+
+            padding: 11px 18px;
+
+            background: #ffffff;
+            color: #17213b;
+
+            border: 1px solid #d8dde8;
+            border-radius: 8px;
+
+            text-decoration: none;
+
+            font-weight: 600;
+
+            transition: all 0.2s ease;
+        }
+
+        .btn-edit-product:hover {
+            background: #f1f3f7;
+            color: #17213b;
+        }
+
+        /* No products */
+
+        .no-products {
+            background: #ffffff;
+
+            border-radius: 18px;
+
+            padding: 45px 30px;
+
+            text-align: center;
+
+            box-shadow: 0 8px 25px rgba(23, 33, 59, 0.08);
+        }
+
+        .no-products h3 {
             color: #17213b;
             margin-bottom: 10px;
         }
 
-        .subtitle {
+        .no-products p {
             color: #707887;
-            margin-bottom: 30px;
         }
 
-        .product-name {
-            color: #17213b;
-            font-weight: 700;
-        }
+        /* Mobile */
 
-        .auction-details {
-            background-color: #f8f9fa;
-            border-radius: 10px;
-            padding: 20px;
-            margin-top: 20px;
-        }
+        @media (max-width: 576px) {
 
-        .auction-title {
-            color: #17213b;
-            font-weight: 700;
-            margin-bottom: 15px;
-        }
+            .products-page {
+                padding: 35px 15px;
+            }
 
-        .highest-bid {
-            color: #198754;
-            font-weight: 700;
-        }
+            .products-page h1 {
+                font-size: 36px;
+            }
 
-        .btn-auction {
-            background-color: #c99a3e;
-            border: none;
-            color: #17213b;
-            font-weight: 700;
-        }
+            .product-card {
+                padding: 24px;
+            }
 
-        .btn-auction:hover {
-            background-color: #a77a25;
-            color: white;
+            .product-name {
+                font-size: 25px;
+            }
+
+            .product-actions {
+                flex-direction: column;
+            }
+
+            .btn-create-auction,
+            .btn-edit-product {
+                width: 100%;
+                text-align: center;
+            }
         }
     </style>
 </head>
 
 <body>
 
-<div class="container mt-5">
+    <!-- =========================================
+         NAVBAR
+         ========================================= -->
 
-    <h1>My Products</h1>
+    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
 
-    <p class="subtitle">
-        Products you have added for auction.
-    </p>
+        <div class="container">
 
-    {% if products %}
+            <a
+                class="navbar-brand fw-bold"
+                href="{% url 'dashboard' %}"
+            >
+                Online Auction
+            </a>
 
-        {% for product in products %}
+            <button
+                class="navbar-toggler"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#navbarNav"
+            >
+                <span class="navbar-toggler-icon"></span>
+            </button>
 
-            <div class="product-card">
+            <div
+                class="collapse navbar-collapse"
+                id="navbarNav"
+            >
 
-                <h3 class="product-name">
-                    {{ product.name }}
-                </h3>
+                <ul class="navbar-nav me-auto">
 
-                <p>
-                    <strong>Category:</strong>
-                    {{ product.category }}
-                </p>
-
-                <p>
-                    <strong>Condition:</strong>
-                    {{ product.get_condition_display }}
-                </p>
-
-                <p>
-                    <strong>Description:</strong>
-                    {{ product.description }}
-                </p>
-
-                <p>
-                    <strong>Starting Price:</strong>
-                    ₹{{ product.starting_price }}
-                </p>
-
-
-                {% if product.auction %}
-
-                    <div class="auction-details">
-
-                        <h5 class="auction-title">
-                            Auction Details
-                        </h5>
-
-                        <p>
-                            <strong>Status:</strong>
-                            {{ product.auction.get_status_display }}
-                        </p>
-
-                        <p>
-                            <strong>Starting Price:</strong>
-                            ₹{{ product.auction.starting_bid }}
-                        </p>
-
-                        <p class="highest-bid">
-                            <strong>Current Highest Bid:</strong>
-                            ₹{{ product.auction.current_highest_bid }}
-                        </p>
-
-                        <p>
-                            <strong>Highest Bidder:</strong>
-
-                            {% if product.auction.highest_bidder %}
-                                {{ product.auction.highest_bidder.username }}
-                            {% else %}
-                                No bids yet
-                            {% endif %}
-                        </p>
-
-                        <p>
-                            <strong>Start Time:</strong>
-                            {{ product.auction.start_time }}
-                        </p>
-
-                        <p>
-                            <strong>End Time:</strong>
-                            {{ product.auction.end_time }}
-                        </p>
-
-                    </div>
-
-                {% else %}
-
-                    <div class="mt-3">
-                        <p class="text-warning">
-                            Auction has not been created yet.
-                        </p>
-
+                    <li class="nav-item">
                         <a
-                            href="{% url 'create_auction' product.id %}"
-                            class="btn btn-auction"
+                            class="nav-link"
+                            href="{% url 'dashboard' %}"
                         >
-                            Create Auction
+                            Home
                         </a>
-                    </div>
+                    </li>
 
-                {% endif %}
+                    <li class="nav-item">
+                        <a
+                            class="nav-link"
+                            href="{% url 'browse_auctions' %}"
+                        >
+                            Browse Auctions
+                        </a>
+                    </li>
+
+                    <li class="nav-item">
+                        <a
+                            class="nav-link active"
+                            href="{% url 'seller_products' %}"
+                        >
+                            My Products
+                        </a>
+                    </li>
+
+                </ul>
+
+
+                <!-- USER MENU -->
+
+                <div class="dropdown">
+
+                    <button
+                        class="btn btn-light dropdown-toggle"
+                        type="button"
+                        data-bs-toggle="dropdown"
+                    >
+                        {{ request.user.username }}
+                    </button>
+
+                    <ul class="dropdown-menu dropdown-menu-end">
+
+                        <li>
+                            <a
+                                class="dropdown-item"
+                                href="{% url 'dashboard' %}"
+                            >
+                                Dashboard
+                            </a>
+                        </li>
+
+                        <li>
+                            <a
+                                class="dropdown-item"
+                                href="{% url 'profile' %}"
+                            >
+                                Profile
+                            </a>
+                        </li>
+
+                        <li>
+                            <hr class="dropdown-divider">
+                        </li>
+
+                        <li>
+                            <a
+                                class="dropdown-item"
+                                href="{% url 'logout' %}"
+                            >
+                                Logout
+                            </a>
+                        </li>
+
+                    </ul>
+
+                </div>
 
             </div>
 
-        {% endfor %}
-
-    {% else %}
-
-        <div class="alert alert-info">
-            You haven't added any products yet.
         </div>
 
-    {% endif %}
+    </nav>
 
-</div>
+
+    <!-- =========================================
+         MAIN CONTENT
+         ========================================= -->
+
+    <main class="products-page">
+
+        <!-- BACK TO DASHBOARD -->
+
+        <a
+            href="{% url 'dashboard' %}"
+            class="back-dashboard-btn"
+        >
+            ← Back to Dashboard
+        </a>
+
+
+        <!-- PAGE TITLE -->
+
+        <h1>
+            My Products
+        </h1>
+
+        <p class="page-description">
+            Products you have added for auction.
+        </p>
+
+
+        <!-- =====================================
+             PRODUCTS
+             ===================================== -->
+
+        {% if products %}
+
+            {% for product in products %}
+
+                <div class="product-card">
+
+                    <!-- PRODUCT NAME -->
+
+                    <h2 class="product-name">
+                        {{ product.name }}
+                    </h2>
+
+
+                    <!-- CATEGORY -->
+
+                    <div class="product-detail">
+
+                        <strong>Category:</strong>
+
+                        {{ product.category }}
+
+                    </div>
+
+
+                    <!-- CONDITION -->
+
+                    <div class="product-detail">
+
+                        <strong>Condition:</strong>
+
+                        {{ product.condition }}
+
+                    </div>
+
+
+                    <!-- DESCRIPTION -->
+
+                    <div class="product-detail product-description">
+
+                        <strong>Description:</strong>
+
+                        {{ product.description }}
+
+                    </div>
+
+
+                    <!-- STARTING PRICE -->
+
+                    <div class="product-detail starting-price">
+
+                        <strong>Starting Price:</strong>
+
+                        ₹{{ product.starting_price }}
+
+                    </div>
+
+
+                    <!-- AUCTION STATUS -->
+
+                    {% if product.auction %}
+
+                        <div class="auction-status">
+
+                            {% if product.auction.status == "SCHEDULED" %}
+
+                                Auction Status:
+                                <strong>Scheduled</strong>
+
+                            {% elif product.auction.status == "ACTIVE" %}
+
+                                Auction Status:
+                                <strong>Active / Live</strong>
+
+                            {% elif product.auction.status == "CLOSED" %}
+
+                                Auction Status:
+                                <strong>Closed</strong>
+
+                            {% elif product.auction.status == "COMPLETED" %}
+
+                                Auction Status:
+                                <strong>Completed</strong>
+
+                            {% else %}
+
+                                Auction Status:
+                                <strong>{{ product.auction.status }}</strong>
+
+                            {% endif %}
+
+                        </div>
+
+
+                        <!-- AUCTION DATES -->
+
+                        <div class="product-detail">
+
+                            <strong>Starts:</strong>
+
+                            {{ product.auction.start_time|date:"d M Y, h:i A" }}
+
+                        </div>
+
+                        <div class="product-detail">
+
+                            <strong>Ends:</strong>
+
+                            {{ product.auction.end_time|date:"d M Y, h:i A" }}
+
+                        </div>
+
+
+                        <!-- EDIT PRODUCT -->
+
+                        <div class="product-actions">
+
+                            <a
+                                href="{% url 'edit_product' product.id %}"
+                                class="btn-edit-product"
+                            >
+                                Edit Product
+                            </a>
+
+                        </div>
+
+                    {% else %}
+
+                        <!-- NO AUCTION -->
+
+                        <div class="auction-status">
+
+                            Auction has not been created yet.
+
+                        </div>
+
+
+                        <div class="product-actions">
+
+                            <a
+                                href="{% url 'create_auction' product.id %}"
+                                class="btn-create-auction"
+                            >
+                                Create Auction
+                            </a>
+
+                            <a
+                                href="{% url 'edit_product' product.id %}"
+                                class="btn-edit-product"
+                            >
+                                Edit Product
+                            </a>
+
+                        </div>
+
+                    {% endif %}
+
+                </div>
+
+            {% endfor %}
+
+        {% else %}
+
+            <!-- NO PRODUCTS -->
+
+            <div class="no-products">
+
+                <h3>
+                    No Products Yet
+                </h3>
+
+                <p>
+                    You haven't added any products for auction.
+                </p>
+
+                <a
+                    href="{% url 'add_product' %}"
+                    class="btn-create-auction"
+                >
+                    Add Product
+                </a>
+
+            </div>
+
+        {% endif %}
+
+    </main>
+
+
+    <!-- =========================================
+         FOOTER
+         ========================================= -->
+
+    <footer class="py-4 bg-white border-top">
+
+        <div class="container text-center">
+
+            <p class="text-muted mb-0">
+                Online Auction System
+            </p>
+
+        </div>
+
+    </footer>
+
+
+    <!-- Bootstrap JS -->
+
+    <script
+        src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js">
+    </script>
 
 </body>
 </html>
