@@ -38,6 +38,21 @@ path(
     views.edit_profile,
     name='edit_profile'
 ),
+path(
+    'seller/products/add/',
+    views.add_product,
+    name='add_product'
+),
+path(
+    'seller/products/',
+    views.seller_products,
+    name='seller_products'
+),
+path(
+    'seller/auction/create/<int:product_id>/',
+    views.create_auction,
+    name='create_auction'
+),
 ]
 
 

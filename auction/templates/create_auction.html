@@ -1,0 +1,33 @@
+<div class="mb-4">
+    <label class="form-label">Product</label>
+    <div class="form-control bg-light">
+        {{ product.name }}
+    </div>
+</div>
+
+<div class="mb-4">
+    <label class="form-label">Starting Price</label>
+    <div class="form-control bg-light">
+        ₹{{ product.starting_price }}
+    </div>
+    <small class="text-muted">
+        This price was set when the product was added.
+    </small>
+</div>
+
+<form method="POST">
+    {% csrf_token %}
+
+    {{ form.as_p }}
+
+    <div class="mt-4">
+        <button type="submit" class="btn btn-primary">
+            Create Auction
+        </button>
+
+        <a href="{% url 'dashboard' %}"
+           class="btn btn-outline-secondary ms-2">
+            Cancel
+        </a>
+    </div>
+</form>

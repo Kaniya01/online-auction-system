@@ -80,7 +80,8 @@
 
                     <li class="nav-item">
 
-                        <!-- MODIFIED: Browse Auctions -->
+                        <!-- Browse Auctions -->
+
                         <a class="nav-link" href="{% url 'browse_auctions' %}">
                             Browse Auctions
                         </a>
@@ -257,7 +258,8 @@
 
                 <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
 
-                    <!-- MODIFIED: Browse Auctions -->
+                    <!-- Browse Auctions -->
+
                     <a href="{% url 'browse_auctions' %}" class="btn btn-auction-primary">
 
                         <i class="bi bi-search me-2"></i>
@@ -435,6 +437,7 @@
                         </div>
 
                         <!-- Still inactive for now -->
+
                         <a href="#" class="section-link">
 
                             View All
@@ -550,6 +553,7 @@
 
 
                         <!-- Still inactive for now -->
+
                         <a href="#" class="section-link">
 
                             View All Bids
@@ -676,7 +680,8 @@
                                 You haven't placed any active bids yet.
                             </p>
 
-                            <!-- MODIFIED: Browse Auctions -->
+                            <!-- Browse Auctions -->
+
                             <a href="{% url 'browse_auctions' %}" class="btn btn-auction-primary btn-sm">
 
                                 Browse Auctions
@@ -867,12 +872,13 @@
                         </div>
 
 
-                        <!-- FRIEND'S CREATE AUCTION AREA - LEFT UNCHANGED -->
-                        <a href="#" class="btn btn-auction-primary btn-sm">
+                        <!-- SELLER: ADD PRODUCT -->
+
+                        <a href="{% url 'add_product' %}" class="btn btn-auction-primary btn-sm">
 
                             <i class="bi bi-plus-lg me-1"></i>
 
-                            Create Auction
+                            Add Product
 
                         </a>
 
@@ -1006,10 +1012,11 @@
                                 Start selling by creating your first auction.
                             </p>
 
-                            <!-- FRIEND'S CREATE AUCTION AREA - LEFT UNCHANGED -->
-                            <a href="#" class="btn btn-auction-primary btn-sm">
+                            <!-- SELLER: ADD PRODUCT -->
 
-                                Create Auction
+                            <a href="{% url 'add_product' %}" class="btn btn-auction-primary btn-sm">
+
+                                Add Product
 
                             </a>
 
@@ -1164,7 +1171,9 @@
 
                         <div class="quick-actions">
 
-                            <!-- MODIFIED: Browse Auctions -->
+
+                            <!-- Browse Auctions -->
+
                             <a href="{% url 'browse_auctions' %}" class="quick-action">
 
                                 <span class="quick-icon">
@@ -1181,6 +1190,8 @@
 
                             </a>
 
+
+                            <!-- My Bids - FRIEND'S BUYER MODULE -->
 
                             <a href="#" class="quick-action">
 
@@ -1199,7 +1210,9 @@
                             </a>
 
 
-                            <a href="#" class="quick-action">
+                            <!-- SELLER: ADD PRODUCT -->
+
+                            <a href="{% url 'add_product' %}" class="quick-action">
 
                                 <span class="quick-icon">
 
@@ -1216,8 +1229,9 @@
                             </a>
 
 
-                            <!-- FRIEND'S CREATE AUCTION AREA - LEFT UNCHANGED -->
-                            <a href="#" class="quick-action">
+                            <!-- SELLER: MY PRODUCTS / CREATE AUCTION -->
+
+                            <a href="{% url 'seller_products' %}" class="quick-action">
 
                                 <span class="quick-icon">
 
@@ -1226,7 +1240,7 @@
                                 </span>
 
                                 <span>
-                                    Create Auction
+                                    My Auctions
                                 </span>
 
                                 <i class="bi bi-arrow-right ms-auto"></i>
