@@ -80,7 +80,8 @@
 
                     <li class="nav-item">
 
-                        <a class="nav-link" href="#">
+                        <!-- MODIFIED: Browse Auctions -->
+                        <a class="nav-link" href="{% url 'browse_auctions' %}">
                             Browse Auctions
                         </a>
 
@@ -184,7 +185,9 @@
 
 
                             <li>
+
                                 <hr class="dropdown-divider">
+
                             </li>
 
 
@@ -254,7 +257,8 @@
 
                 <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
 
-                    <a href="#" class="btn btn-auction-primary">
+                    <!-- MODIFIED: Browse Auctions -->
+                    <a href="{% url 'browse_auctions' %}" class="btn btn-auction-primary">
 
                         <i class="bi bi-search me-2"></i>
 
@@ -430,9 +434,13 @@
 
                         </div>
 
+                        <!-- Still inactive for now -->
                         <a href="#" class="section-link">
+
                             View All
+
                             <i class="bi bi-arrow-right"></i>
+
                         </a>
 
                     </div>
@@ -541,9 +549,13 @@
                         </div>
 
 
+                        <!-- Still inactive for now -->
                         <a href="#" class="section-link">
+
                             View All Bids
+
                             <i class="bi bi-arrow-right"></i>
+
                         </a>
 
                     </div>
@@ -664,8 +676,11 @@
                                 You haven't placed any active bids yet.
                             </p>
 
-                            <a href="#" class="btn btn-auction-primary btn-sm">
+                            <!-- MODIFIED: Browse Auctions -->
+                            <a href="{% url 'browse_auctions' %}" class="btn btn-auction-primary btn-sm">
+
                                 Browse Auctions
+
                             </a>
 
                         </div>
@@ -852,6 +867,7 @@
                         </div>
 
 
+                        <!-- FRIEND'S CREATE AUCTION AREA - LEFT UNCHANGED -->
                         <a href="#" class="btn btn-auction-primary btn-sm">
 
                             <i class="bi bi-plus-lg me-1"></i>
@@ -990,8 +1006,11 @@
                                 Start selling by creating your first auction.
                             </p>
 
+                            <!-- FRIEND'S CREATE AUCTION AREA - LEFT UNCHANGED -->
                             <a href="#" class="btn btn-auction-primary btn-sm">
+
                                 Create Auction
+
                             </a>
 
                         </div>
@@ -1047,8 +1066,6 @@
                             <div class="notification-icon">
 
                                 {% if notification.notification_type == 'BID' or notification.notification_type == 'OUTBID' %}
-
-
 
                                 <i class="bi bi-hammer"></i>
 
@@ -1147,7 +1164,8 @@
 
                         <div class="quick-actions">
 
-                            <a href="#" class="quick-action">
+                            <!-- MODIFIED: Browse Auctions -->
+                            <a href="{% url 'browse_auctions' %}" class="quick-action">
 
                                 <span class="quick-icon">
 
@@ -1198,6 +1216,7 @@
                             </a>
 
 
+                            <!-- FRIEND'S CREATE AUCTION AREA - LEFT UNCHANGED -->
                             <a href="#" class="quick-action">
 
                                 <span class="quick-icon">
@@ -1259,7 +1278,7 @@
                         </p>
 
 
-                        <a href="#" class="btn btn-outline-auction w-100">
+                        <a href="{% url 'edit_profile' %}" class="btn btn-outline-auction w-100">
 
                             <i class="bi bi-pencil me-1"></i>
 

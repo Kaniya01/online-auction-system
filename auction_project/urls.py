@@ -4,7 +4,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 from auction import views
-
+from auction import browse_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -28,7 +28,11 @@ urlpatterns = [
     views.profile,
     name='profile'
 ),
-
+path(
+    'browse-auctions/',
+    browse_views.browse_auctions,
+    name='browse_auctions'
+),
 path(
     'profile/edit/',
     views.edit_profile,
