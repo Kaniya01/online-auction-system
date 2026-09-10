@@ -1,12 +1,12 @@
+
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.shortcuts import redirect, render
-from .forms import RegistrationForm,ProfileForm
-from .models import Profile
 
-
+from .forms import RegistrationForm, ProfileForm, ProductForm, AuctionForm
+from .models import Profile, Product, Auction
 # =========================================================
 # REGISTER
 # =========================================================
@@ -133,10 +133,21 @@ def dashboard(request):
     # This prevents us from guessing your model fields.
     # -----------------------------------------------------
 
+    my_products = Product.objects.filter(
+       seller=request.user
+    )
+
+    my_auctions = Auction.objects.filter(
+       product__seller=request.user
+    ).order_by('-created_at')
+
     context = {
+       'user': user,
 
-        'user': user,
-
+        'my_products_count': my_products.count(),
+        'my_auctions_count': my_auctions.count(),
+        'my_products': my_products,
+        'my_auctions': my_auctions,
     }
 
 
@@ -205,5 +216,81 @@ def edit_profile(request):
         {
             'form': form,
             'profile': profile,
+        }
+    )
+@login_required
+def add_product(request):
+    # Only logged-in users can add products.
+    # The seller will always be the currently logged-in user.
+    if request.method == 'POST':
+        form = ProductForm(request.POST)
+
+        if form.is_valid():
+            product = form.save(commit=False)
+            product.seller = request.user
+            product.save()
+
+            messages.success(
+                request,
+                'Product added successfully!'
+            )
+
+            return redirect('create_auction', product_id=product.id)
+
+    else:
+        form = ProductForm()
+
+    return render(
+        request,
+        'add_product.html',
+        {'form': form}
+    )
+@login_required
+def create_auction(request, product_id):
+    product = Product.objects.get(
+        id=product_id,
+        seller=request.user
+    )
+
+    if request.method == 'POST':
+        form = AuctionForm(request.POST)
+
+        if form.is_valid():
+            auction = form.save(commit=False)
+            auction.product = product
+            auction.starting_bid=product.starting_price
+            auction.current_highest_bid=product.starting_price
+            auction.status = 'SCHEDULED'
+            auction.save()
+
+            messages.success(
+                request,
+                'Auction created successfully!'
+            )
+
+            return redirect('seller_products')
+
+    else:
+        form = AuctionForm()
+
+    return render(
+        request,
+        'create_auction.html',
+        {
+            'form': form,
+            'product': product,
+        }
+    )
+@login_required
+def seller_products(request):
+    products = Product.objects.filter(
+        seller=request.user
+    ).order_by('-created_at')
+
+    return render(
+        request,
+        'seller_products.html',
+        {
+            'products': products,
         }
     )

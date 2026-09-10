@@ -1,6 +1,6 @@
 from django import forms
 from django.contrib.auth.models import User
-from .models import Profile
+from .models import Profile, Product, Auction
 
 class RegistrationForm(forms.Form):
     username = forms.CharField(max_length=150)
@@ -79,3 +79,75 @@ class ProfileForm(forms.ModelForm):
                 }
             ),
         }
+
+
+class ProductForm(forms.ModelForm):
+    class Meta:
+        model = Product
+        fields = [
+            'name',
+            'category',
+            'description',
+            'condition',
+            'starting_price',
+        ]
+
+        widgets = {
+            'name': forms.TextInput(
+                attrs={
+                    'class': 'form-control',
+                    'placeholder': 'Enter product name',
+                }
+            ),
+            'category': forms.TextInput(
+                attrs={
+                    'class': 'form-control',
+                    'placeholder': 'Enter product category',
+                }
+            ),
+            'description': forms.Textarea(
+                attrs={
+                    'class': 'form-control',
+                    'rows': 5,
+                    'placeholder': 'Describe your product',
+                }
+            ),
+            'condition': forms.Select(
+                attrs={
+                    'class': 'form-select',
+                }
+            ),
+            'starting_price': forms.NumberInput(
+                attrs={
+                    'class': 'form-control',
+                    'placeholder': 'Enter starting price',
+                    'min': '0.01',
+                    'step': '0.01',
+                    'required': True
+                }
+            ),
+        }
+class AuctionForm(forms.ModelForm):
+    class Meta:
+        model = Auction
+        fields = ['start_time', 'end_time']
+        widgets = {
+            'start_time': forms.DateTimeInput(
+                attrs={'type': 'datetime-local', 'class': 'form-control'}
+            ),
+            'end_time': forms.DateTimeInput(
+                attrs={'type': 'datetime-local', 'class': 'form-control'}
+            ),
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        start_time = cleaned_data.get('start_time')
+        end_time = cleaned_data.get('end_time')
+
+        if start_time and end_time and end_time <= start_time:
+            raise forms.ValidationError(
+                'End time must be after start time.'
+            )
+
+        return cleaned_data

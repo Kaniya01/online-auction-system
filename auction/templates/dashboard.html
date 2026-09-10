@@ -852,11 +852,13 @@
                         </div>
 
 
-                        <a href="#" class="btn btn-auction-primary btn-sm">
+                        <!-- SELLER: ADD PRODUCT -->
+
+                        <a href="{% url 'add_product' %}" class="btn btn-auction-primary btn-sm">
 
                             <i class="bi bi-plus-lg me-1"></i>
 
-                            Create Auction
+                            Add Product
 
                         </a>
 
@@ -990,8 +992,8 @@
                                 Start selling by creating your first auction.
                             </p>
 
-                            <a href="#" class="btn btn-auction-primary btn-sm">
-                                Create Auction
+                            <a href="{% url 'add_product' %}" class="btn btn-auction-primary btn-sm">
+                                Add Product
                             </a>
 
                         </div>
@@ -1047,8 +1049,6 @@
                             <div class="notification-icon">
 
                                 {% if notification.notification_type == 'BID' or notification.notification_type == 'OUTBID' %}
-
-
 
                                 <i class="bi bi-hammer"></i>
 
@@ -1147,6 +1147,9 @@
 
                         <div class="quick-actions">
 
+
+                            <!-- Browse Auctions -->
+
                             <a href="#" class="quick-action">
 
                                 <span class="quick-icon">
@@ -1163,6 +1166,8 @@
 
                             </a>
 
+
+                            <!-- My Bids - FRIEND'S BUYER MODULE -->
 
                             <a href="#" class="quick-action">
 
@@ -1181,7 +1186,9 @@
                             </a>
 
 
-                            <a href="#" class="quick-action">
+                            <!-- SELLER: ADD PRODUCT -->
+
+                            <a href="{% url 'add_product' %}" class="quick-action">
 
                                 <span class="quick-icon">
 
@@ -1198,7 +1205,9 @@
                             </a>
 
 
-                            <a href="#" class="quick-action">
+                            <!-- SELLER: MY PRODUCTS / CREATE AUCTION -->
+
+                            <a href="{% url 'seller_products' %}" class="quick-action">
 
                                 <span class="quick-icon">
 
@@ -1207,7 +1216,7 @@
                                 </span>
 
                                 <span>
-                                    Create Auction
+                                    My Auctions
                                 </span>
 
                                 <i class="bi bi-arrow-right ms-auto"></i>
@@ -1259,7 +1268,7 @@
                         </p>
 
 
-                        <a href="#" class="btn btn-outline-auction w-100">
+                        <a href="{% url 'edit_profile' %}" class="btn btn-outline-auction w-100">
 
                             <i class="bi bi-pencil me-1"></i>
 
