@@ -6,6 +6,7 @@ from django.conf.urls.static import static
 from auction import views
 from auction import browse_views
 
+
 urlpatterns = [
 
     # =====================================================
@@ -16,6 +17,7 @@ urlpatterns = [
         'admin/',
         admin.site.urls
     ),
+
 
     # =====================================================
     # HOME / DASHBOARD
@@ -32,6 +34,7 @@ urlpatterns = [
         views.dashboard,
         name='dashboard'
     ),
+
 
     # =====================================================
     # AUTHENTICATION
@@ -55,6 +58,7 @@ urlpatterns = [
         name='logout'
     ),
 
+
     # =====================================================
     # PROFILE
     # =====================================================
@@ -71,15 +75,6 @@ urlpatterns = [
         name='edit_profile'
     ),
 
-    # =====================================================
-    # BROWSE AUCTIONS
-    # =====================================================
-
-    path(
-        'browse-auctions/',
-        browse_views.browse_auctions,
-        name='browse_auctions'
-    ),
 
     # =====================================================
     # BUYER / SELLER MODE
@@ -91,8 +86,38 @@ urlpatterns = [
         name='switch_mode'
     ),
 
+
     # =====================================================
-    # SELLER
+    # BUYER - BROWSE AUCTIONS
+    # =====================================================
+
+    path(
+        'browse-auctions/',
+        browse_views.browse_auctions,
+        name='browse_auctions'
+    ),
+
+    path(
+        'auction/<int:auction_id>/',
+        browse_views.auction_detail,
+        name='auction_detail'
+    ),
+
+    path(
+        'auction/<int:auction_id>/bid/',
+        browse_views.place_bid,
+        name='place_bid'
+    ),
+
+    path(
+        'my-bids/',
+        browse_views.my_bids,
+        name='my_bids'
+    ),
+
+
+    # =====================================================
+    # SELLER - PRODUCTS
     # =====================================================
 
     path(
@@ -108,21 +133,25 @@ urlpatterns = [
     ),
 
     path(
-        'seller/auction/create/<int:product_id>/',
-        views.create_auction,
-        name='create_auction'
-    ),
-    path(
         'seller/products/edit/<int:product_id>/',
         views.edit_product,
         name='edit_product'
     ),
+
+
+    # =====================================================
+    # SELLER - CREATE AUCTION
+    # =====================================================
+
     path(
         'seller/auction/create/<int:product_id>/',
         views.create_auction,
         name='create_auction'
     ),
+
 ]
+
+
 # =========================================================
 # MEDIA FILES
 # =========================================================
