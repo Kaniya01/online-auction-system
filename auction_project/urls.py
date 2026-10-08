@@ -80,6 +80,16 @@ urlpatterns = [
         browse_views.browse_auctions,
         name='browse_auctions'
     ),
+    path(
+    'auction/<int:auction_id>/',
+    browse_views.auction_detail,
+    name='auction_detail'
+    ),
+    path(
+    'seller/products/image/delete/<int:image_id>/',
+    views.delete_product_image,
+    name='delete_product_image'
+    ),
 
     # =====================================================
     # BUYER / SELLER MODE
@@ -118,9 +128,19 @@ urlpatterns = [
         name='edit_product'
     ),
     path(
+    'seller/auctions/edit/<int:auction_id>/',
+    views.edit_auction,
+    name='edit_auction'
+    ),
+    path(
         'seller/auction/create/<int:product_id>/',
         views.create_auction,
         name='create_auction'
+    ),
+    path(
+    'seller/auctions/',
+    views.seller_auctions,
+    name='seller_auctions'
     ),
 ]
 # =========================================================

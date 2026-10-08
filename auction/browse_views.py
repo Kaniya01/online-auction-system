@@ -13,15 +13,13 @@ from .models import Auction
 def browse_auctions(request):
 
     auctions = Auction.objects.select_related(
-        'product',
-        'product__seller'
-    ).prefetch_related(
-        'product__images'
-    ).exclude(
-        status__in=['CLOSED', 'COMPLETED']
-    ).order_by('end_time')
+    'product',
+    'product__seller'
+).prefetch_related(
+    'product__images'
+).order_by('end_time')
 
-    # Search
+     # Search
     search_query = request.GET.get('q', '').strip()
 
     if search_query:
@@ -40,12 +38,10 @@ def browse_auctions(request):
         )
 
     # Available categories
-    categories = Auction.objects.exclude(
-        status__in=['CLOSED', 'COMPLETED']
-    ).values_list(
-        'product__category',
-        flat=True
-    ).distinct().order_by('product__category')
+    categories = Auction.objects.values_list(
+    'product__category',
+    flat=True
+).distinct().order_by('product__category')
 
     context = {
         'auctions': auctions,

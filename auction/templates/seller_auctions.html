@@ -1,0 +1,583 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>My Auctions | AuctionHub</title>
+
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+        rel="stylesheet">
+
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+        rel="stylesheet">
+
+    <style>
+
+        body {
+            background: #f6f8fc;
+            font-family: 'Inter', sans-serif;
+            color: #14213d;
+        }
+
+        /* NAVBAR */
+
+        .navbar-auction {
+            background: #ffffff;
+            border-bottom: 1px solid #e5e9f2;
+            min-height: 76px;
+        }
+
+        .navbar-brand {
+            font-size: 25px;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .navbar-brand i {
+            color: #2155d9;
+        }
+
+        .brand-main {
+            color: #2155d9;
+        }
+
+        .brand-light {
+            color: #18233c;
+        }
+
+        .nav-link {
+            color: #536079;
+            font-weight: 500;
+            padding: 10px 16px !important;
+        }
+
+        .nav-link:hover,
+        .nav-link.active {
+            color: #2155d9;
+        }
+
+        .profile-menu {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .avatar-placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #edf3ff;
+            color: #2155d9;
+        }
+
+        /* MAIN */
+
+        .page-container {
+            max-width: 1200px;
+            margin: 45px auto;
+        }
+
+        .page-header {
+            margin-bottom: 28px;
+        }
+
+        .page-header h1 {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .page-header p {
+            color: #667085;
+            margin: 0;
+        }
+
+        /* CARD */
+
+        .auction-table-card {
+            background: #ffffff;
+            border: 1px solid #e1e7f0;
+            border-radius: 16px;
+            box-shadow: 0 5px 20px rgba(31, 41, 55, 0.05);
+            overflow: hidden;
+        }
+
+        .table {
+            margin-bottom: 0;
+        }
+
+        .table thead th {
+            background: #f8faff;
+            color: #536079;
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            padding: 16px;
+            border-bottom: 1px solid #e1e7f0;
+        }
+
+        .table tbody td {
+            padding: 18px 16px;
+            vertical-align: middle;
+            border-bottom: 1px solid #edf0f5;
+        }
+
+        .table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .product-name {
+            font-weight: 700;
+            color: #172554;
+        }
+
+        .price {
+            font-weight: 600;
+        }
+
+        .date-text {
+            font-size: 13px;
+            color: #667085;
+        }
+
+        /* STATUS */
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 11px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .status-active {
+            background: #e9f8ef;
+            color: #16803c;
+        }
+
+        .status-scheduled {
+            background: #eef4ff;
+            color: #2155d9;
+        }
+
+        .status-closed {
+            background: #f1f3f5;
+            color: #667085;
+        }
+
+        .status-completed {
+            background: #fff4df;
+            color: #a66a00;
+        }
+
+        /* BUTTON */
+
+        .btn-view {
+            background: #2155d9;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 13px;
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .btn-view:hover {
+            background: #1745bd;
+            color: white;
+        }
+
+        /* EMPTY */
+
+        .empty-state {
+            padding: 70px 30px;
+            text-align: center;
+        }
+
+        .empty-icon {
+            width: 75px;
+            height: 75px;
+            margin: 0 auto 20px;
+            border-radius: 50%;
+            background: #edf5ff;
+            color: #2155d9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+        }
+
+        .empty-state h2 {
+            font-size: 23px;
+            font-weight: 700;
+        }
+
+        .empty-state p {
+            color: #718096;
+        }
+
+        .btn-add {
+            background: #2155d9;
+            color: white;
+            border: none;
+            border-radius: 9px;
+            padding: 10px 18px;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .btn-add:hover {
+            background: #1745bd;
+            color: white;
+        }
+
+        /* MOBILE */
+
+        @media (max-width: 768px) {
+
+            .page-container {
+                margin: 25px 15px;
+            }
+
+            .auction-table-card {
+                overflow-x: auto;
+            }
+
+            .table {
+                min-width: 900px;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+<!-- NAVBAR -->
+
+<nav class="navbar navbar-expand-lg navbar-auction">
+
+    <div class="container">
+
+        <a class="navbar-brand" href="{% url 'home' %}">
+
+            <i class="bi bi-hammer me-2"></i>
+
+            <span class="brand-main">Auction</span><span class="brand-light">Hub</span>
+
+        </a>
+
+        <button
+            class="navbar-toggler"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#mainNavbar">
+
+            <span class="navbar-toggler-icon"></span>
+
+        </button>
+
+        <div class="collapse navbar-collapse" id="mainNavbar">
+
+            <ul class="navbar-nav me-auto ms-lg-4">
+
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'dashboard' %}">
+                        Dashboard
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'seller_products' %}">
+                        My Products
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link active" href="{% url 'seller_auctions' %}">
+                        My Auctions
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a class="nav-link" href="{% url 'browse_auctions' %}">
+                        Browse Auctions
+                    </a>
+                </li>
+
+            </ul>
+
+            <!-- PROFILE -->
+
+            <ul class="navbar-nav">
+
+                <li class="nav-item dropdown">
+
+                    <a
+                        class="nav-link dropdown-toggle profile-menu"
+                        href="#"
+                        role="button"
+                        data-bs-toggle="dropdown">
+
+                        {% if user.profile.profile_picture %}
+
+                            <img
+                                src="{{ user.profile.profile_picture.url }}"
+                                class="avatar"
+                                alt="Profile">
+
+                        {% else %}
+
+                            <span class="avatar avatar-placeholder">
+                                <i class="bi bi-person"></i>
+                            </span>
+
+                        {% endif %}
+
+                        <span>
+                            {{ user.profile.full_name|default:user.username }}
+                        </span>
+
+                    </a>
+
+                    <ul class="dropdown-menu dropdown-menu-end">
+
+                        <li>
+                            <a class="dropdown-item" href="{% url 'profile' %}">
+                                <i class="bi bi-person me-2"></i>
+                                Profile
+                            </a>
+                        </li>
+
+                        <li>
+                            <a class="dropdown-item" href="{% url 'edit_profile' %}">
+                                <i class="bi bi-pencil me-2"></i>
+                                Edit Profile
+                            </a>
+                        </li>
+
+                        <li>
+                            <hr class="dropdown-divider">
+                        </li>
+
+                        <li>
+                            <a class="dropdown-item text-danger" href="{% url 'logout' %}">
+                                <i class="bi bi-box-arrow-right me-2"></i>
+                                Logout
+                            </a>
+                        </li>
+
+                    </ul>
+
+                </li>
+
+            </ul>
+
+        </div>
+
+    </div>
+
+</nav>
+
+
+<!-- MAIN -->
+
+<div class="container page-container">
+
+    <div class="page-header">
+
+        <h1>My Auctions</h1>
+
+        <p>
+            Manage and monitor the auctions you have created.
+        </p>
+
+    </div>
+
+
+    <div class="auction-table-card">
+
+        {% if auctions %}
+
+            <div class="table-responsive">
+
+                <table class="table">
+
+                    <thead>
+
+                        <tr>
+
+                            <th>Product</th>
+
+                            <th>Starting Bid</th>
+
+                            <th>Current Bid</th>
+
+                            <th>Start Time</th>
+
+                            <th>End Time</th>
+
+                            <th>Status</th>
+
+                            <th>Action</th>
+
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        {% for auction in auctions %}
+
+                            <tr>
+
+                                <td>
+                                    <div class="product-name">
+                                        {{ auction.product.name }}
+                                    </div>
+                                </td>
+
+                                <td>
+                                    <span class="price">
+                                        ₹{{ auction.starting_bid }}
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <span class="price">
+                                        ₹{{ auction.current_highest_bid }}
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <span class="date-text">
+                                        {{ auction.start_time|date:"d M Y, h:i A" }}
+                                    </span>
+                                </td>
+
+                                <td>
+                                    <span class="date-text">
+                                        {{ auction.end_time|date:"d M Y, h:i A" }}
+                                    </span>
+                                </td>
+
+                                <td>
+
+                                    {% if auction.status == 'ACTIVE' %}
+
+                                        <span class="status-badge status-active">
+                                            Active
+                                        </span>
+
+                                    {% elif auction.status == 'SCHEDULED' %}
+
+                                        <span class="status-badge status-scheduled">
+                                            Scheduled
+                                        </span>
+
+                                    {% elif auction.status == 'CLOSED' %}
+
+                                        <span class="status-badge status-closed">
+                                            Closed
+                                        </span>
+
+                                    {% elif auction.status == 'COMPLETED' %}
+
+                                        <span class="status-badge status-completed">
+                                            Completed
+                                        </span>
+
+                                    {% else %}
+
+                                        <span class="status-badge status-closed">
+                                            {{ auction.status }}
+                                        </span>
+
+                                    {% endif %}
+
+                                </td>
+
+                                <td>
+
+                                    <a
+                                        href="{% url 'auction_detail' auction.id %}"
+                                        class="btn-view">
+
+                                        <i class="bi bi-eye me-1"></i>
+                                        View
+
+                                    </a>
+                                    {% if auction.status == 'SCHEDULED' %}
+                                    <a href="{% url 'edit_auction' auction.id %}"
+                                        class="btn btn-outline-primary w-100 mt-2">
+                                        Edit Auction
+                                    </a>
+                                    {% endif %}
+
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        {% else %}
+
+            <div class="empty-state">
+
+                <div class="empty-icon">
+                    <i class="bi bi-megaphone"></i>
+                </div>
+
+                <h2>No Auctions Yet</h2>
+
+                <p>
+                    You haven't created any auctions yet.
+                </p>
+
+                <a
+                    href="{% url 'seller_products' %}"
+                    class="btn-add">
+
+                    View My Products
+
+                </a>
+
+            </div>
+
+        {% endif %}
+
+    </div>
+
+</div>
+
+
+<script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js">
+</script>
+
+</body>
+
+</html>

@@ -2,11 +2,11 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from .forms import RegistrationForm, ProfileForm, ProductForm, AuctionForm
-from .models import Profile, Product, Auction
+from .models import Profile, Product, Auction, ProductImage
 
 # =========================================================
 # REGISTER
@@ -173,6 +173,23 @@ def dashboard(request):
         'dashboard.html',
         context
     )
+
+@login_required
+def seller_auctions(request):
+
+    auctions = Auction.objects.filter(
+        product__seller=request.user
+    ).select_related(
+        'product'
+    ).order_by('-created_at')
+
+    return render(
+        request,
+        'seller_auctions.html',
+        {
+            'auctions': auctions,
+        }
+    )
 #=========================================================
 # SWITCH MODE
 #=========================================================
@@ -268,8 +285,6 @@ def edit_profile(request):
     )
 @login_required
 def add_product(request):
-    # Only logged-in users can add products.
-    # The seller will always be the currently logged-in user.
     if request.method == 'POST':
         form = ProductForm(request.POST)
 
@@ -277,6 +292,14 @@ def add_product(request):
             product = form.save(commit=False)
             product.seller = request.user
             product.save()
+
+            images = request.FILES.getlist('images')
+
+            for image in images:
+                ProductImage.objects.create(
+                    product=product,
+                    image=image
+                )
 
             messages.success(
                 request,
@@ -296,7 +319,8 @@ def add_product(request):
 @login_required
 def edit_product(request, product_id):
 
-    product = Product.objects.get(
+    product = get_object_or_404(
+        Product,
         id=product_id,
         seller=request.user
     )
@@ -305,12 +329,22 @@ def edit_product(request, product_id):
 
         form = ProductForm(
             request.POST,
+            request.FILES,
             instance=product
         )
 
         if form.is_valid():
 
             form.save()
+
+            # Add new images
+            images = request.FILES.getlist('images')
+
+            for image in images:
+                ProductImage.objects.create(
+                    product=product,
+                    image=image
+                )
 
             messages.success(
                 request,
@@ -330,6 +364,32 @@ def edit_product(request, product_id):
             'form': form,
             'product': product,
         }
+    )
+
+
+@login_required
+def delete_product_image(request, image_id):
+
+    image = get_object_or_404(
+        ProductImage,
+        id=image_id,
+        product__seller=request.user
+    )
+
+    product_id = image.product.id
+
+    if request.method == 'POST':
+        image.image.delete(save=False)
+        image.delete()
+
+        messages.success(
+            request,
+            'Product image removed successfully.'
+        )
+
+    return redirect(
+        'edit_product',
+        product_id=product_id
     )
 @login_required
 def create_auction(request, product_id):
@@ -367,6 +427,62 @@ def create_auction(request, product_id):
             'product': product,
         }
     )
+@login_required
+def edit_auction(request, auction_id):
+    auction = get_object_or_404(
+        Auction,
+        id=auction_id,
+        product__seller=request.user
+    )
+
+    # Once the auction has started, it cannot be edited.
+    if timezone.now() >= auction.start_time:
+        messages.error(
+            request,
+            'This auction has already started and cannot be edited.'
+        )
+        return redirect('seller_auctions')
+
+    if auction.status in ['ACTIVE', 'CLOSED', 'COMPLETED']:
+        messages.error(
+            request,
+            'This auction can no longer be edited.'
+        )
+        return redirect('seller_auctions')
+
+    if request.method == 'POST':
+        form = AuctionForm(request.POST, instance=auction)
+
+        if form.is_valid():
+            updated_auction = form.save(commit=False)
+
+            # Extra safety: new start time must still be in the future.
+            if updated_auction.start_time <= timezone.now():
+                messages.error(
+                    request,
+                    'Auction start time must be in the future.'
+                )
+            else:
+                updated_auction.status = 'SCHEDULED'
+                updated_auction.save()
+
+                messages.success(
+                    request,
+                    'Auction updated successfully!'
+                )
+                return redirect('seller_auctions')
+    else:
+        form = AuctionForm(instance=auction)
+
+    return render(
+        request,
+        'edit_auction.html',
+        {
+            'form': form,
+            'auction': auction,
+        }
+    )
+
 @login_required
 def seller_products(request):
     products = Product.objects.filter(
