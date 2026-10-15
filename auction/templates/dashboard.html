@@ -1,140 +1,256 @@
 {% load static %}
 
 <!DOCTYPE html>
+
 <html lang="en">
 
 <head>
 
     <meta charset="UTF-8">
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta
+
+        name="viewport"
+
+        content="width=device-width, initial-scale=1.0"
+
+    >
 
     <title>AuctionHub | Dashboard</title>
 
     <!-- Bootstrap 5 -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-          rel="stylesheet">
+
+    <link
+
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+
+        rel="stylesheet"
+
+    >
 
     <!-- Bootstrap Icons -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
-          rel="stylesheet">
+
+    <link
+
+        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+
+        rel="stylesheet"
+
+    >
 
     <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-          rel="stylesheet">
+    <link
+
+        rel="preconnect"
+
+        href="https://fonts.googleapis.com"
+
+    >
+
+    <link
+
+        rel="preconnect"
+
+        href="https://fonts.gstatic.com"
+
+        crossorigin
+
+    >
+
+    <link
+
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+
+        rel="stylesheet"
+
+    >
 
     <!-- Dashboard CSS -->
-    <link rel="stylesheet"
-          href="{% static 'css/dashboard.css' %}">
+
+    <link
+
+        rel="stylesheet"
+
+        href="{% static 'css/dashboard.css' %}"
+
+    >
 
 </head>
 
 <body>
 
-    <!-- =====================================================
-         NAVBAR
-         ===================================================== -->
+<!-- =====================================================
 
-    <nav class="navbar navbar-expand-lg navbar-auction">
+     NAVBAR
 
-        <div class="container">
+     ===================================================== -->
 
-            <a class="navbar-brand" href="{% url 'home' %}">
+<nav class="navbar navbar-expand-lg navbar-auction">
 
-                <i class="bi bi-hammer me-2"></i>
+    <div class="container">
 
-                <span class="brand-main">Auction</span><span class="brand-light">Hub</span>
+        <!-- BRAND -->
 
-            </a>
+        <a
 
-            <button class="navbar-toggler"
-                    type="button"
-                    data-bs-toggle="collapse"
-                    data-bs-target="#mainNavbar">
+            class="navbar-brand"
 
-                <span class="navbar-toggler-icon"></span>
+            href="{% url 'home' %}"
 
-            </button>
+        >
 
-            <div class="collapse navbar-collapse" id="mainNavbar">
+            <i class="bi bi-hammer me-2"></i>
 
-                <ul class="navbar-nav me-auto ms-lg-4">
+            <span class="brand-main">Auction</span><span class="brand-light">Hub</span>
 
-                    <li class="nav-item">
+        </a>
 
-                        <a class="nav-link" href="{% url 'home' %}">
-                            Home
-                        </a>
+        <!-- MOBILE TOGGLE -->
 
-                    </li>
+        <button
 
-                    <li class="nav-item">
+            class="navbar-toggler"
 
-                        <a class="nav-link" href="{% url 'browse_auctions' %}">
-                            Browse Auctions
-                        </a>
+            type="button"
 
-                    </li>
+            data-bs-toggle="collapse"
 
-                    <li class="nav-item">
+            data-bs-target="#mainNavbar"
 
-                        <a class="nav-link active" href="{% url 'dashboard' %}">
-                            Dashboard
-                        </a>
+        >
 
-                    </li>
+            <span class="navbar-toggler-icon"></span>
 
-                </ul>
+        </button>
 
+        <div
 
-                <!-- =================================================
-                     RIGHT SIDE
-                     ================================================= -->
+            class="collapse navbar-collapse"
 
-                <ul class="navbar-nav align-items-lg-center">
+            id="mainNavbar"
 
-                    <!-- Notifications -->
+        >
 
-                    <li class="nav-item">
+            <!-- LEFT NAVIGATION -->
 
-                        <a class="nav-link notification-bell"
-                           href="#notifications"
-                           aria-label="Notifications">
+            <ul class="navbar-nav me-auto ms-lg-4">
 
-                            <i class="bi bi-bell"></i>
+                <li class="nav-item">
 
-                            {% if unread_notification_count > 0 %}
+                    <a
+
+                        class="nav-link"
+
+                        href="{% url 'home' %}"
+
+                    >
+
+                        Home
+
+                    </a>
+
+                </li>
+
+                <li class="nav-item">
+
+                    <a
+
+                        class="nav-link"
+
+                        href="{% url 'browse_auctions' %}"
+
+                    >
+
+                        Browse Auctions
+
+                    </a>
+
+                </li>
+
+                <li class="nav-item">
+
+                    <a
+
+                        class="nav-link active"
+
+                        href="{% url 'dashboard' %}"
+
+                    >
+
+                        Dashboard
+
+                    </a>
+
+                </li>
+
+            </ul>
+
+            <!-- RIGHT NAVIGATION -->
+
+            <ul class="navbar-nav align-items-lg-center">
+
+                <!-- NOTIFICATIONS -->
+
+                <li class="nav-item">
+
+                    <a
+
+                        class="nav-link notification-bell"
+
+                        href="#notifications"
+
+                        aria-label="Notifications"
+
+                    >
+
+                        <i class="bi bi-bell"></i>
+
+                        {% if unread_notification_count > 0 %}
 
                             <span class="notification-badge">
+
                                 {{ unread_notification_count }}
+
                             </span>
 
-                            {% endif %}
+                        {% endif %}
 
-                        </a>
+                    </a>
 
-                    </li>
+                </li>
 
+                <!-- PROFILE -->
 
-                    <!-- Profile -->
+                <li class="nav-item dropdown">
 
-                    <li class="nav-item dropdown">
+                    <a
 
-                        <a class="nav-link dropdown-toggle profile-menu"
-                           href="#"
-                           role="button"
-                           data-bs-toggle="dropdown">
+                        class="nav-link dropdown-toggle profile-menu"
 
-                            {% if user.profile.profile_picture %}
+                        href="#"
 
-                            <img src="{{ user.profile.profile_picture.url }}"
-                                 class="avatar"
-                                 alt="Profile">
+                        role="button"
 
-                            {% else %}
+                        data-bs-toggle="dropdown"
+
+                        aria-expanded="false"
+
+                    >
+
+                        {% if user.profile.profile_picture %}
+
+                            <img
+
+                                src="{{ user.profile.profile_picture.url }}"
+
+                                class="avatar"
+
+                                alt="Profile"
+
+                            >
+
+                        {% else %}
 
                             <span class="avatar avatar-placeholder">
 
@@ -142,124 +258,149 @@
 
                             </span>
 
-                            {% endif %}
+                        {% endif %}
 
-                            <span class="profile-name">
+                        <span class="profile-name">
 
-                                {{ user.profile.full_name|default:user.username }}
+                            {{ user.profile.full_name|default:user.username }}
 
-                            </span>
+                        </span>
 
-                        </a>
+                    </a>
 
+                    <!-- PROFILE DROPDOWN -->
 
-                        <ul class="dropdown-menu dropdown-menu-end">
+                    <ul class="dropdown-menu dropdown-menu-end">
 
-                            <li>
+                        <li>
 
-                                <a class="dropdown-item"
-                                   href="{% url 'profile' %}">
+                            <a
 
-                                    <i class="bi bi-person me-2"></i>
+                                class="dropdown-item"
 
-                                    Profile
+                                href="{% url 'profile' %}"
 
-                                </a>
+                            >
 
-                            </li>
+                                <i class="bi bi-person me-2"></i>
 
+                                Profile
 
-                            <li>
+                            </a>
 
-                                <a class="dropdown-item"
-                                   href="{% url 'edit_profile' %}">
+                        </li>
 
-                                    <i class="bi bi-pencil me-2"></i>
+                        <li>
 
-                                    Edit Profile
+                            <a
 
-                                </a>
+                                class="dropdown-item"
 
-                            </li>
+                                href="{% url 'edit_profile' %}"
 
+                            >
 
-                            <li>
+                                <i class="bi bi-pencil me-2"></i>
 
-                                <hr class="dropdown-divider">
+                                Edit Profile
 
-                            </li>
+                            </a>
 
+                        </li>
 
-                            <li>
+                        <li>
 
-                                <a class="dropdown-item text-danger"
-                                   href="{% url 'logout' %}">
+                            <hr class="dropdown-divider">
 
-                                    <i class="bi bi-box-arrow-right me-2"></i>
+                        </li>
 
-                                    Logout
+                        <!-- LOGOUT -->
 
-                                </a>
+                        <li>
 
-                            </li>
+                            <a
 
-                        </ul>
+                                class="dropdown-item text-danger"
 
-                    </li>
+                                href="{% url 'logout' %}"
 
-                </ul>
+                            >
 
-            </div>
+                                <i class="bi bi-box-arrow-right me-2"></i>
+
+                                Logout
+
+                            </a>
+
+                        </li>
+
+                    </ul>
+
+                </li>
+
+            </ul>
 
         </div>
 
-    </nav>
+    </div>
 
+</nav>
 
-    <!-- =====================================================
-         MAIN
-         ===================================================== -->
+<!-- =====================================================
 
-    <main class="container dashboard-container py-4">
+     MAIN
 
+     ===================================================== -->
 
-        <!-- =================================================
-             WELCOME
-             ================================================= -->
+<main class="container dashboard-container py-4">
 
-        <section class="welcome-banner mb-4">
+    <!-- =================================================
 
-            <div class="row align-items-center">
+         WELCOME
 
-                <div class="col-lg-8">
+         ================================================= -->
 
-                    <span class="welcome-label">
-                        YOUR AUCTION SPACE
-                    </span>
+    <section class="welcome-banner mb-4">
 
-                    <h1>
+        <div class="row align-items-center">
 
-                        Welcome back,
-                        {{ user.profile.full_name|default:user.username }}
+            <div class="col-lg-8">
 
-                    </h1>
+                <span class="welcome-label">
 
-                    <p>
+                    YOUR AUCTION SPACE
 
-                        Manage your auctions and bidding activity
-                        from one place.
+                </span>
 
-                    </p>
+                <h1>
 
-                </div>
+                    Welcome back,
 
+                    {{ user.profile.full_name|default:user.username }}
 
-                <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+                </h1>
 
-                    {% if mode == 'SELLER' %}
+                <p>
 
-                    <a href="{% url 'add_product' %}"
-                       class="btn btn-auction-primary">
+                    Manage your auctions and bidding activity
+
+                    from one place.
+
+                </p>
+
+            </div>
+
+            <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+
+                {% if mode == 'SELLER' %}
+
+                    <a
+
+                        href="{% url 'add_product' %}"
+
+                        class="btn btn-auction-primary"
+
+                    >
 
                         <i class="bi bi-plus-lg me-2"></i>
 
@@ -267,10 +408,15 @@
 
                     </a>
 
-                    {% else %}
+                {% else %}
 
-                    <a href="{% url 'browse_auctions' %}"
-                       class="btn btn-auction-primary">
+                    <a
+
+                        href="{% url 'browse_auctions' %}"
+
+                        class="btn btn-auction-primary"
+
+                    >
 
                         <i class="bi bi-search me-2"></i>
 
@@ -278,95 +424,103 @@
 
                     </a>
 
-                    {% endif %}
-
-                </div>
+                {% endif %}
 
             </div>
 
-        </section>
+        </div>
 
+    </section>
 
-        <!-- =================================================
-             BUYER / SELLER MODE SWITCHER
-             ================================================= -->
+    <!-- =================================================
 
-        <section class="mode-switcher mb-4">
+         BUYER / SELLER MODE
 
-            <div class="mode-switcher-content">
+         ================================================= -->
 
-                <div>
+    <section class="mode-switcher mb-4">
 
-                    <span class="mode-label">
-                        CURRENT MODE
-                    </span>
+        <div class="mode-switcher-content">
 
-                    <h3>
+            <div>
 
-                        {% if mode == 'SELLER' %}
+                <span class="mode-label">
+
+                    CURRENT MODE
+
+                </span>
+
+                <h3>
+
+                    {% if mode == 'SELLER' %}
 
                         <i class="bi bi-shop me-2"></i>
 
                         Seller Mode
 
-                        {% else %}
+                    {% else %}
 
                         <i class="bi bi-cart3 me-2"></i>
 
                         Buyer Mode
 
-                        {% endif %}
+                    {% endif %}
 
-                    </h3>
-
-                </div>
-
-
-                <div class="mode-buttons">
-
-                    <a href="{% url 'switch_mode' 'BUYER' %}"
-                       class="btn {% if mode == 'BUYER' %}btn-mode-active{% else %}btn-mode{% endif %}">
-
-                        <i class="bi bi-cart3 me-1"></i>
-
-                        Buyer
-
-                    </a>
-
-
-                    <a href="{% url 'switch_mode' 'SELLER' %}"
-                       class="btn {% if mode == 'SELLER' %}btn-mode-active{% else %}btn-mode{% endif %}">
-
-                        <i class="bi bi-shop me-1"></i>
-
-                        Seller
-
-                    </a>
-
-                </div>
+                </h3>
 
             </div>
 
-        </section>
+            <div class="mode-buttons">
 
+                <a
 
-        <!-- =================================================
-             SELLER MODE
-             ================================================= -->
+                    href="{% url 'switch_mode' 'BUYER' %}"
 
-        {% if mode == 'SELLER' %}
+                    class="btn {% if mode == 'BUYER' %}btn-mode-active{% else %}btn-mode{% endif %}"
 
+                >
 
-        <!-- =================================================
-             SELLER STATISTICS
-             ================================================= -->
+                    <i class="bi bi-cart3 me-1"></i>
+
+                    Buyer
+
+                </a>
+
+                <a
+
+                    href="{% url 'switch_mode' 'SELLER' %}"
+
+                    class="btn {% if mode == 'SELLER' %}btn-mode-active{% else %}btn-mode{% endif %}"
+
+                >
+
+                    <i class="bi bi-shop me-1"></i>
+
+                    Seller
+
+                </a>
+
+            </div>
+
+        </div>
+
+    </section>
+
+    <!-- =====================================================
+
+         SELLER MODE
+
+         ===================================================== -->
+
+    {% if mode == 'SELLER' %}
+
+        <!-- SELLER STATISTICS -->
 
         <section class="mb-4">
 
             <div class="row g-3">
 
-
-                <!-- Products -->
+                <!-- PRODUCTS -->
 
                 <div class="col-6 col-lg-4">
 
@@ -381,11 +535,15 @@
                         <div>
 
                             <div class="stat-value">
+
                                 {{ my_products_count }}
+
                             </div>
 
                             <div class="stat-label">
+
                                 My Products
+
                             </div>
 
                         </div>
@@ -394,8 +552,7 @@
 
                 </div>
 
-
-                <!-- Auctions -->
+                <!-- AUCTIONS -->
 
                 <div class="col-6 col-lg-4">
 
@@ -410,11 +567,15 @@
                         <div>
 
                             <div class="stat-value">
+
                                 {{ my_auctions_count }}
+
                             </div>
 
                             <div class="stat-label">
+
                                 My Auctions
+
                             </div>
 
                         </div>
@@ -423,8 +584,7 @@
 
                 </div>
 
-
-                <!-- Add Product -->
+                <!-- ADD PRODUCT -->
 
                 <div class="col-12 col-lg-4">
 
@@ -438,15 +598,24 @@
 
                         <div>
 
-                            <a href="{% url 'add_product' %}"
-                               class="text-decoration-none">
+                            <a
+
+                                href="{% url 'add_product' %}"
+
+                                class="text-decoration-none"
+
+                            >
 
                                 <div class="stat-value">
+
                                     +
+
                                 </div>
 
                                 <div class="stat-label">
+
                                     Add Product
+
                                 </div>
 
                             </a>
@@ -461,20 +630,15 @@
 
         </section>
 
+        <!-- SELLER CONTENT -->
 
         <div class="row g-4">
 
-
-            <!-- =================================================
-                 SELLER MAIN COLUMN
-                 ================================================= -->
+            <!-- SELLER MAIN -->
 
             <div class="col-lg-8">
 
-
-                <!-- =============================================
-                     SELLING ACTIVITY
-                     ============================================= -->
+                <!-- SELLING ACTIVITY -->
 
                 <section class="section-card mb-4">
 
@@ -483,18 +647,26 @@
                         <div>
 
                             <span class="section-kicker">
+
                                 SELLING
+
                             </span>
 
                             <h2>
+
                                 My Selling Activity
+
                             </h2>
 
                         </div>
 
+                        <a
 
-                        <a href="{% url 'add_product' %}"
-                           class="btn btn-auction-primary btn-sm">
+                            href="{% url 'add_product' %}"
+
+                            class="btn btn-auction-primary btn-sm"
+
+                        >
 
                             <i class="bi bi-plus-lg me-1"></i>
 
@@ -504,142 +676,173 @@
 
                     </div>
 
-
                     <div class="section-card-body">
 
                         {% if my_auctions %}
 
-                        <div class="table-responsive">
+                            <div class="table-responsive">
 
-                            <table class="table auction-table">
+                                <table class="table auction-table">
 
-                                <thead>
+                                    <thead>
 
-                                    <tr>
+                                        <tr>
 
-                                        <th>Product</th>
+                                            <th>
 
-                                        <th>Status</th>
+                                                Product
 
-                                        <th>Highest Bid</th>
+                                            </th>
 
-                                        <th>Ends</th>
+                                            <th>
 
-                                        <th>Bids</th>
+                                                Status
 
-                                    </tr>
+                                            </th>
 
-                                </thead>
+                                            <th>
 
+                                                Highest Bid
 
-                                <tbody>
+                                            </th>
 
-                                    {% for auction in my_auctions %}
+                                            <th>
 
-                                    <tr>
+                                                Ends
 
-                                        <td class="product-name">
-                                            {{ auction.product.name }}
-                                        </td>
+                                            </th>
 
+                                            <th>
 
-                                        <td>
+                                                Bids
 
-                                            {% if auction.status == 'ACTIVE' %}
+                                            </th>
 
-                                            <span class="status-pill status-live">
+                                        </tr>
 
-                                                <i class="bi bi-broadcast"></i>
+                                    </thead>
 
-                                                Active
+                                    <tbody>
 
-                                            </span>
+                                        {% for auction in my_auctions %}
 
-                                            {% elif auction.status == 'SCHEDULED' %}
+                                            <tr>
 
-                                            <span class="status-pill status-pending">
+                                                <td class="product-name">
 
-                                                <i class="bi bi-clock"></i>
+                                                    {{ auction.product.name }}
 
-                                                Scheduled
+                                                </td>
 
-                                            </span>
+                                                <td>
 
-                                            {% elif auction.status == 'COMPLETED' %}
+                                                    {% if auction.status == 'ACTIVE' %}
 
-                                            <span class="status-pill status-won">
+                                                        <span class="status-pill status-live">
 
-                                                <i class="bi bi-check-circle"></i>
+                                                            <i class="bi bi-broadcast"></i>
 
-                                                Completed
+                                                            Active
 
-                                            </span>
+                                                        </span>
 
-                                            {% else %}
+                                                    {% elif auction.status == 'SCHEDULED' %}
 
-                                            <span class="status-pill status-closed">
+                                                        <span class="status-pill status-pending">
 
-                                                <i class="bi bi-x-circle"></i>
+                                                            <i class="bi bi-clock"></i>
 
-                                                Closed
+                                                            Scheduled
 
-                                            </span>
+                                                        </span>
 
-                                            {% endif %}
+                                                    {% elif auction.status == 'COMPLETED' %}
 
-                                        </td>
+                                                        <span class="status-pill status-won">
 
+                                                            <i class="bi bi-check-circle"></i>
 
-                                        <td>
-                                            ₹{{ auction.current_highest_bid }}
-                                        </td>
+                                                            Completed
 
+                                                        </span>
 
-                                        <td>
-                                            {{ auction.end_time }}
-                                        </td>
+                                                    {% else %}
 
+                                                        <span class="status-pill status-closed">
 
-                                        <td>
-                                            {{ auction.bids.count }}
-                                        </td>
+                                                            <i class="bi bi-x-circle"></i>
 
-                                    </tr>
+                                                            Closed
 
-                                    {% endfor %}
+                                                        </span>
 
-                                </tbody>
+                                                    {% endif %}
 
-                            </table>
+                                                </td>
 
-                        </div>
+                                                <td>
 
-                        {% else %}
+                                                    ₹{{ auction.current_highest_bid|floatformat:2 }}
 
-                        <div class="empty-state">
+                                                </td>
 
-                            <div class="empty-state-icon">
+                                                <td>
 
-                                <i class="bi bi-megaphone"></i>
+                                                    {{ auction.end_time|date:"d M Y, h:i A" }}
+
+                                                </td>
+
+                                                <td>
+
+                                                    {{ auction.bids.count }}
+
+                                                </td>
+
+                                            </tr>
+
+                                        {% endfor %}
+
+                                    </tbody>
+
+                                </table>
 
                             </div>
 
-                            <h3>
-                                No auctions created yet
-                            </h3>
+                        {% else %}
 
-                            <p>
-                                Start selling by creating your first auction.
-                            </p>
+                            <div class="empty-state">
 
-                            <a href="{% url 'add_product' %}"
-                               class="btn btn-auction-primary btn-sm">
+                                <div class="empty-state-icon">
 
-                                Add Product
+                                    <i class="bi bi-megaphone"></i>
 
-                            </a>
+                                </div>
 
-                        </div>
+                                <h3>
+
+                                    No auctions created yet
+
+                                </h3>
+
+                                <p>
+
+                                    Start selling by creating your first auction.
+
+                                </p>
+
+                                <a
+
+                                    href="{% url 'add_product' %}"
+
+                                    class="btn btn-auction-primary btn-sm"
+
+                                >
+
+                                    Add Product
+
+                                </a>
+
+                            </div>
 
                         {% endif %}
 
@@ -647,10 +850,7 @@
 
                 </section>
 
-
-                <!-- =============================================
-                     MY PRODUCTS
-                     ============================================= -->
+                <!-- MY PRODUCTS -->
 
                 <section class="section-card mb-4">
 
@@ -659,18 +859,26 @@
                         <div>
 
                             <span class="section-kicker">
+
                                 PRODUCTS
+
                             </span>
 
                             <h2>
+
                                 My Products
+
                             </h2>
 
                         </div>
 
+                        <a
 
-                        <a href="{% url 'add_product' %}"
-                           class="btn btn-auction-primary btn-sm">
+                            href="{% url 'add_product' %}"
+
+                            class="btn btn-auction-primary btn-sm"
+
+                        >
 
                             <i class="bi bi-plus-lg me-1"></i>
 
@@ -680,77 +888,91 @@
 
                     </div>
 
-
                     <div class="section-card-body">
 
                         {% if my_products %}
 
-                        {% for product in my_products|slice:":5" %}
+                            {% for product in my_products|slice:":5" %}
 
-                        <div class="ending-item">
+                                <div class="ending-item">
 
-                            <div class="ending-icon">
+                                    <div class="ending-icon">
 
-                                <i class="bi bi-box-seam"></i>
+                                        <i class="bi bi-box-seam"></i>
 
-                            </div>
+                                    </div>
 
+                                    <div class="ending-info">
 
-                            <div class="ending-info">
+                                        <div class="product-name">
 
-                                <div class="product-name">
-                                    {{ product.name }}
+                                            {{ product.name }}
+
+                                        </div>
+
+                                        <small>
+
+                                            {{ product.category }}
+
+                                        </small>
+
+                                    </div>
+
+                                    <div class="ending-price">
+
+                                        <span>
+
+                                            Starting price
+
+                                        </span>
+
+                                        <strong>
+
+                                            ₹{{ product.starting_price }}
+
+                                        </strong>
+
+                                    </div>
+
                                 </div>
 
-                                <small>
-                                    {{ product.category }}
-                                </small>
-
-                            </div>
-
-
-                            <div class="ending-price">
-
-                                <span>
-                                    Starting price
-                                </span>
-
-                                <strong>
-                                    ₹{{ product.starting_price }}
-                                </strong>
-
-                            </div>
-
-                        </div>
-
-                        {% endfor %}
+                            {% endfor %}
 
                         {% else %}
 
-                        <div class="empty-state">
+                            <div class="empty-state">
 
-                            <div class="empty-state-icon">
+                                <div class="empty-state-icon">
 
-                                <i class="bi bi-box-seam"></i>
+                                    <i class="bi bi-box-seam"></i>
+
+                                </div>
+
+                                <h3>
+
+                                    No products yet
+
+                                </h3>
+
+                                <p>
+
+                                    Add a product to start selling.
+
+                                </p>
+
+                                <a
+
+                                    href="{% url 'add_product' %}"
+
+                                    class="btn btn-auction-primary btn-sm"
+
+                                >
+
+                                    Add Product
+
+                                </a>
 
                             </div>
-
-                            <h3>
-                                No products yet
-                            </h3>
-
-                            <p>
-                                Add a product to start selling.
-                            </p>
-
-                            <a href="{% url 'add_product' %}"
-                               class="btn btn-auction-primary btn-sm">
-
-                                Add Product
-
-                            </a>
-
-                        </div>
 
                         {% endif %}
 
@@ -760,13 +982,9 @@
 
             </div>
 
-
-            <!-- =================================================
-                 SELLER SIDEBAR
-                 ================================================= -->
+            <!-- SELLER SIDEBAR -->
 
             <div class="col-lg-4">
-
 
                 <!-- QUICK ACTIONS -->
 
@@ -777,25 +995,32 @@
                         <div>
 
                             <span class="section-kicker">
+
                                 SHORTCUTS
+
                             </span>
 
                             <h2>
+
                                 Quick Actions
+
                             </h2>
 
                         </div>
 
                     </div>
 
-
                     <div class="section-card-body">
 
                         <div class="quick-actions">
 
+                            <a
 
-                            <a href="{% url 'add_product' %}"
-                               class="quick-action">
+                                href="{% url 'add_product' %}"
+
+                                class="quick-action"
+
+                            >
 
                                 <span class="quick-icon">
 
@@ -804,15 +1029,17 @@
                                 </span>
 
                                 <span>
+
                                     Add Product
+
                                 </span>
 
                                 <i class="bi bi-arrow-right ms-auto"></i>
 
                             </a>
 
-
                             <a href="{% url 'seller_auctions' %}"
+
                                class="quick-action">
 
                                 <span class="quick-icon">
@@ -822,7 +1049,9 @@
                                 </span>
 
                                 <span>
+
                                     My Auctions
+
                                 </span>
 
                                 <i class="bi bi-arrow-right ms-auto"></i>
@@ -835,7 +1064,6 @@
 
                 </section>
 
-
                 <!-- PROFILE -->
 
                 <section class="section-card">
@@ -844,33 +1072,45 @@
 
                         {% if user.profile.profile_picture %}
 
-                        <img src="{{ user.profile.profile_picture.url }}"
-                             class="profile-avatar"
-                             alt="Profile photo">
+                            <img
+
+                                src="{{ user.profile.profile_picture.url }}"
+
+                                class="profile-avatar"
+
+                                alt="Profile photo"
+
+                            >
 
                         {% else %}
 
-                        <div class="profile-avatar profile-placeholder">
+                            <div class="profile-avatar profile-placeholder">
 
-                            <i class="bi bi-person"></i>
+                                <i class="bi bi-person"></i>
 
-                        </div>
+                            </div>
 
                         {% endif %}
 
-
                         <h3>
+
                             {{ user.profile.full_name|default:user.username }}
+
                         </h3>
 
-
                         <p>
+
                             {{ user.email }}
+
                         </p>
 
+                        <a
 
-                        <a href="{% url 'profile' %}"
-                           class="btn btn-outline-auction w-100 mb-2">
+                            href="{% url 'profile' %}"
+
+                            class="btn btn-outline-auction w-100 mb-2"
+
+                        >
 
                             <i class="bi bi-person me-1"></i>
 
@@ -878,9 +1118,13 @@
 
                         </a>
 
+                        <a
 
-                        <a href="{% url 'edit_profile' %}"
-                           class="btn btn-outline-auction w-100">
+                            href="{% url 'edit_profile' %}"
+
+                            class="btn btn-outline-auction w-100"
+
+                        >
 
                             <i class="bi bi-pencil me-1"></i>
 
@@ -896,25 +1140,21 @@
 
         </div>
 
+    <!-- =====================================================
 
-        <!-- =================================================
-             SELLER MODE END
-             ================================================= -->
+         BUYER MODE
 
+         ===================================================== -->
 
-        {% else %}
+    {% else %}
 
-
-        <!-- =================================================
-             BUYER MODE
-             ================================================= -->
+        <!-- BUYER STATISTICS -->
 
         <section class="mb-4">
 
             <div class="row g-3">
 
-
-                <!-- Active Bids -->
+                <!-- ACTIVE BIDS -->
 
                 <div class="col-6 col-lg-4">
 
@@ -929,11 +1169,15 @@
                         <div>
 
                             <div class="stat-value">
+
                                 {{ active_bids_count|default:"0" }}
+
                             </div>
 
                             <div class="stat-label">
+
                                 Active Bids
+
                             </div>
 
                         </div>
@@ -942,8 +1186,7 @@
 
                 </div>
 
-
-                <!-- Won Auctions -->
+                <!-- WON AUCTIONS -->
 
                 <div class="col-6 col-lg-4">
 
@@ -958,11 +1201,15 @@
                         <div>
 
                             <div class="stat-value">
+
                                 {{ won_auctions_count|default:"0" }}
+
                             </div>
 
                             <div class="stat-label">
+
                                 Won Auctions
+
                             </div>
 
                         </div>
@@ -971,8 +1218,7 @@
 
                 </div>
 
-
-                <!-- Browse Auctions -->
+                <!-- BROWSE -->
 
                 <div class="col-12 col-lg-4">
 
@@ -986,15 +1232,24 @@
 
                         <div>
 
-                            <a href="{% url 'browse_auctions' %}"
-                               class="text-decoration-none">
+                            <a
+
+                                href="{% url 'browse_auctions' %}"
+
+                                class="text-decoration-none"
+
+                            >
 
                                 <div class="stat-value">
+
                                     →
+
                                 </div>
 
                                 <div class="stat-label">
+
                                     Browse Auctions
+
                                 </div>
 
                             </a>
@@ -1009,18 +1264,21 @@
 
         </section>
 
-
         <div class="row g-4">
 
-
             <!-- =================================================
+
                  BUYER MAIN COLUMN
+
                  ================================================= -->
 
             <div class="col-lg-8">
 
+                <!-- =================================================
 
-                <!-- BUYING ACTIVITY -->
+                     MY BUYING ACTIVITY
+
+                     ================================================= -->
 
                 <section class="section-card mb-4">
 
@@ -1029,143 +1287,228 @@
                         <div>
 
                             <span class="section-kicker">
+
                                 BUYING
+
                             </span>
 
                             <h2>
+
                                 My Buying Activity
+
                             </h2>
 
                         </div>
 
-
-                        <a href="{% url 'browse_auctions' %}"
-                           class="section-link">
-
-                            Browse Auctions
-
-                            <i class="bi bi-arrow-right"></i>
-
-                        </a>
-
                     </div>
-
 
                     <div class="section-card-body">
 
                         {% if active_bids %}
 
-                        <div class="table-responsive">
+                            <div class="table-responsive">
 
-                            <table class="table auction-table">
+                                <table class="table auction-table">
 
-                                <thead>
+                                    <thead>
 
-                                    <tr>
+                                        <tr>
 
-                                        <th>Product</th>
+                                            <th>
 
-                                        <th>Highest Bid</th>
+                                                Product
 
-                                        <th>Your Bid</th>
+                                            </th>
 
-                                        <th>Status</th>
+                                            <th>
 
-                                        <th>Ends</th>
+                                                Highest Bid
 
-                                    </tr>
+                                            </th>
 
-                                </thead>
+                                            <th>
 
+                                                Your Bid
 
-                                <tbody>
+                                            </th>
 
-                                    {% for bid in active_bids %}
+                                            <th>
 
-                                    <tr>
+                                                Status
 
-                                        <td class="product-name">
-                                            {{ bid.auction.product.name }}
-                                        </td>
+                                            </th>
 
+                                            <th>
 
-                                        <td>
-                                            ₹{{ bid.auction.current_highest_bid }}
-                                        </td>
+                                                Ends
 
+                                            </th>
 
-                                        <td>
-                                            ₹{{ bid.amount }}
-                                        </td>
+                                        </tr>
 
+                                    </thead>
 
-                                        <td>
+                                    <tbody>
 
-                                            {% if bid.amount >= bid.auction.current_highest_bid %}
+                                        {% for auction in active_bids %}
 
-                                            <span class="status-pill status-live">
+                                            <tr>
 
-                                                <i class="bi bi-check-circle"></i>
+                                                <!-- PRODUCT -->
 
-                                                Leading
+                                                <td class="product-name">
 
-                                            </span>
+                                                    <a
 
-                                            {% else %}
+                                                        href="{% url 'auction_detail' auction.id %}"
 
-                                            <span class="status-pill status-outbid">
+                                                        class="text-decoration-none"
 
-                                                <i class="bi bi-arrow-down-circle"></i>
+                                                    >
 
-                                                Outbid
+                                                        {{ auction.product.name }}
 
-                                            </span>
+                                                    </a>
 
-                                            {% endif %}
+                                                </td>
 
-                                        </td>
+                                                <!-- HIGHEST BID -->
 
+                                                <td>
 
-                                        <td>
-                                            {{ bid.auction.end_time }}
-                                        </td>
+                                                    ₹{{ auction.current_highest_bid|floatformat:2 }}
 
-                                    </tr>
+                                                </td>
 
-                                    {% endfor %}
+                                                <!-- YOUR BID -->
 
-                                </tbody>
+                                                <td>
 
-                            </table>
+                                                    {% for bid in auction.bids.all %}
 
-                        </div>
+                                                        {% if bid.buyer_id == request.user.id %}
 
-                        {% else %}
+                                                            ₹{{ bid.amount|floatformat:2 }}
 
-                        <div class="empty-state">
+                                                        {% endif %}
 
-                            <div class="empty-state-icon">
+                                                    {% endfor %}
 
-                                <i class="bi bi-hammer"></i>
+                                                </td>
+
+                                                <!-- STATUS -->
+
+                                                <td>
+
+                                                    {% if auction.status == 'ACTIVE' %}
+
+                                                        {% if auction.highest_bidder_id == request.user.id %}
+
+                                                            <span class="status-pill status-live">
+
+                                                                <i class="bi bi-check-circle"></i>
+
+                                                                Highest Bid
+
+                                                            </span>
+
+                                                        {% else %}
+
+                                                            <span class="status-pill status-outbid">
+
+                                                                <i class="bi bi-arrow-down-circle"></i>
+
+                                                                Outbid
+
+                                                            </span>
+
+                                                        {% endif %}
+
+                                                    {% elif auction.status == 'SCHEDULED' %}
+
+                                                        <span class="status-pill status-pending">
+
+                                                            <i class="bi bi-clock"></i>
+
+                                                            Scheduled
+
+                                                        </span>
+
+                                                    {% elif auction.status == 'CLOSED' %}
+
+                                                        {% if auction.highest_bidder_id == request.user.id %}
+
+                                                            <span class="status-pill status-won">
+
+                                                                <i class="bi bi-trophy"></i>
+
+                                                                Won
+
+                                                            </span>
+
+                                                        {% else %}
+
+                                                            <span class="status-pill status-closed">
+
+                                                                Ended
+
+                                                            </span>
+
+                                                        {% endif %}
+
+                                                    {% endif %}
+
+                                                </td>
+
+                                                <!-- END -->
+
+                                                <td>
+
+                                                    {{ auction.end_time|date:"d M Y" }}
+
+                                                    <br>
+
+                                                    <small>
+
+                                                        {{ auction.end_time|date:"h:i A" }}
+
+                                                    </small>
+
+                                                </td>
+
+                                            </tr>
+
+                                        {% endfor %}
+
+                                    </tbody>
+
+                                </table>
 
                             </div>
 
-                            <h3>
-                                No active bids
-                            </h3>
+                        {% else %}
 
-                            <p>
-                                You haven't placed any active bids yet.
-                            </p>
+                            <div class="empty-state">
 
-                            <a href="{% url 'browse_auctions' %}"
-                               class="btn btn-auction-primary btn-sm">
+                                <div class="empty-state-icon">
 
-                                Browse Auctions
+                                    <i class="bi bi-cart3"></i>
 
-                            </a>
+                                </div>
 
-                        </div>
+                                <h3>
+
+                                    No buying activity yet
+
+                                </h3>
+
+                                <p>
+
+                                    Browse available auctions and place your first bid.
+
+                                </p>
+
+                            </div>
 
                         {% endif %}
 
@@ -1173,8 +1516,11 @@
 
                 </section>
 
+                <!-- =================================================
 
-                <!-- WON AUCTIONS -->
+                     WON AUCTIONS
+
+                     ================================================= -->
 
                 <section class="section-card mb-4">
 
@@ -1183,129 +1529,180 @@
                         <div>
 
                             <span class="section-kicker">
+
                                 RESULTS
+
                             </span>
 
                             <h2>
+
                                 Won Auctions
+
                             </h2>
 
                         </div>
 
                     </div>
-
 
                     <div class="section-card-body">
 
                         {% if won_auctions %}
 
-                        <div class="table-responsive">
+                            <div class="table-responsive">
 
-                            <table class="table auction-table">
+                                <table class="table auction-table">
 
-                                <thead>
+                                    <thead>
 
-                                    <tr>
+                                        <tr>
 
-                                        <th>Product</th>
+                                            <th>
 
-                                        <th>Winning Bid</th>
+                                                Product
 
-                                        <th>Status</th>
+                                            </th>
 
-                                        <th>Payment</th>
+                                            <th>
 
-                                    </tr>
+                                                Winning Bid
 
-                                </thead>
+                                            </th>
 
+                                            <th>
 
-                                <tbody>
+                                                Status
 
-                                    {% for auction in won_auctions %}
+                                            </th>
 
-                                    <tr>
+                                            <th>
 
-                                        <td class="product-name">
-                                            {{ auction.product.name }}
-                                        </td>
+                                                Payment
 
+                                            </th>
 
-                                        <td>
-                                            ₹{{ auction.current_highest_bid }}
-                                        </td>
+                                        </tr>
 
+                                    </thead>
 
-                                        <td>
+                                    <tbody>
 
-                                            <span class="status-pill status-won">
+                                        {% for auction in won_auctions %}
 
-                                                <i class="bi bi-trophy"></i>
+                                            <tr>
 
-                                                Won
+                                                <!-- PRODUCT -->
 
-                                            </span>
+                                                <td class="product-name">
 
-                                        </td>
+                                                    <strong>
 
+                                                        {{ auction.product.name }}
 
-                                        <td>
+                                                    </strong>
 
-                                            {% if auction.latest_payment %}
+                                                </td>
 
-                                                {% if auction.latest_payment.payment_status == 'COMPLETED' %}
+                                                <!-- WINNING BID -->
 
-                                                <span class="status-pill status-paid">
-                                                    Paid
-                                                </span>
+                                                <td>
 
-                                                {% else %}
+                                                    <strong>
 
-                                                <span class="status-pill status-pending">
-                                                    Payment Pending
-                                                </span>
+                                                        ₹{{ auction.current_highest_bid|floatformat:2 }}
 
-                                                {% endif %}
+                                                    </strong>
 
-                                            {% else %}
+                                                </td>
 
-                                            <span class="status-pill status-pending">
-                                                Payment Pending
-                                            </span>
+                                                <!-- STATUS -->
 
-                                            {% endif %}
+                                                <td>
 
-                                        </td>
+                                                    <span class="status-pill status-won">
 
-                                    </tr>
+                                                        <i class="bi bi-trophy"></i>
 
-                                    {% endfor %}
+                                                        Won
 
-                                </tbody>
+                                                    </span>
 
-                            </table>
+                                                </td>
 
-                        </div>
+                                                <!-- PAYMENT -->
 
-                        {% else %}
+                                                <td>
 
-                        <div class="empty-state">
+                                                    {% if auction.latest_payment %}
 
-                            <div class="empty-state-icon">
+                                                        {% if auction.latest_payment.payment_status == 'COMPLETED' %}
 
-                                <i class="bi bi-trophy"></i>
+                                                            <span class="status-pill status-paid">
+
+                                                                <i class="bi bi-check-circle"></i>
+
+                                                                Paid
+
+                                                            </span>
+
+                                                        {% else %}
+
+                                                            <span class="status-pill status-pending">
+
+                                                                <i class="bi bi-clock"></i>
+
+                                                                Payment Pending
+
+                                                            </span>
+
+                                                        {% endif %}
+
+                                                    {% else %}
+
+                                                        <span class="status-pill status-pending">
+
+                                                            <i class="bi bi-clock"></i>
+
+                                                            Payment Pending
+
+                                                        </span>
+
+                                                    {% endif %}
+
+                                                </td>
+
+                                            </tr>
+
+                                        {% endfor %}
+
+                                    </tbody>
+
+                                </table>
 
                             </div>
 
-                            <h3>
-                                No won auctions yet
-                            </h3>
+                        {% else %}
 
-                            <p>
-                                Auctions you win will appear here.
-                            </p>
+                            <div class="empty-state">
 
-                        </div>
+                                <div class="empty-state-icon">
+
+                                    <i class="bi bi-trophy"></i>
+
+                                </div>
+
+                                <h3>
+
+                                    No won auctions yet
+
+                                </h3>
+
+                                <p>
+
+                                    Auctions you win will appear here.
+
+                                </p>
+
+                            </div>
 
                         {% endif %}
 
@@ -1313,8 +1710,11 @@
 
                 </section>
 
+                <!-- =================================================
 
-                <!-- ENDING SOON -->
+                     ENDING SOON
+
+                     ================================================= -->
 
                 <section class="section-card mb-4">
 
@@ -1323,85 +1723,100 @@
                         <div>
 
                             <span class="section-kicker">
+
                                 LIVE ACTIVITY
+
                             </span>
 
                             <h2>
+
                                 Ending Soon
+
                             </h2>
 
                         </div>
 
                     </div>
 
-
                     <div class="section-card-body">
 
                         {% if ending_auctions %}
 
-                        <div class="ending-list">
+                            <div class="ending-list">
 
-                            {% for auction in ending_auctions %}
+                                {% for auction in ending_auctions %}
 
-                            <div class="ending-item">
+                                    <div class="ending-item">
 
-                                <div class="ending-icon">
+                                        <div class="ending-icon">
 
-                                    <i class="bi bi-clock"></i>
+                                            <i class="bi bi-clock"></i>
 
-                                </div>
+                                        </div>
 
+                                        <div class="ending-info">
 
-                                <div class="ending-info">
+                                            <div class="product-name">
 
-                                    <div class="product-name">
-                                        {{ auction.product.name }}
+                                                {{ auction.product.name }}
+
+                                            </div>
+
+                                            <small>
+
+                                                Ends
+
+                                                {{ auction.end_time|date:"d M Y, h:i A" }}
+
+                                            </small>
+
+                                        </div>
+
+                                        <div class="ending-price">
+
+                                            <span>
+
+                                                Current bid
+
+                                            </span>
+
+                                            <strong>
+
+                                                ₹{{ auction.current_highest_bid|floatformat:2 }}
+
+                                            </strong>
+
+                                        </div>
+
                                     </div>
 
-                                    <small>
-                                        Ends {{ auction.end_time }}
-                                    </small>
-
-                                </div>
-
-
-                                <div class="ending-price">
-
-                                    <span>
-                                        Current bid
-                                    </span>
-
-                                    <strong>
-                                        ₹{{ auction.current_highest_bid }}
-                                    </strong>
-
-                                </div>
+                                {% endfor %}
 
                             </div>
-
-                            {% endfor %}
-
-                        </div>
 
                         {% else %}
 
-                        <div class="empty-state">
+                            <div class="empty-state">
 
-                            <div class="empty-state-icon">
+                                <div class="empty-state-icon">
 
-                                <i class="bi bi-hourglass-split"></i>
+                                    <i class="bi bi-hourglass-split"></i>
+
+                                </div>
+
+                                <h3>
+
+                                    No auctions ending soon
+
+                                </h3>
+
+                                <p>
+
+                                    Auctions close to their ending time will appear here.
+
+                                </p>
 
                             </div>
-
-                            <h3>
-                                No auctions ending soon
-                            </h3>
-
-                            <p>
-                                Auctions close to their ending time will appear here.
-                            </p>
-
-                        </div>
 
                         {% endif %}
 
@@ -1411,13 +1826,13 @@
 
             </div>
 
-
             <!-- =================================================
+
                  BUYER SIDEBAR
+
                  ================================================= -->
 
             <div class="col-lg-4">
-
 
                 <!-- QUICK ACTIONS -->
 
@@ -1428,25 +1843,34 @@
                         <div>
 
                             <span class="section-kicker">
+
                                 SHORTCUTS
+
                             </span>
 
                             <h2>
+
                                 Quick Actions
+
                             </h2>
 
                         </div>
 
                     </div>
 
-
                     <div class="section-card-body">
 
                         <div class="quick-actions">
 
+                            <!-- ONLY QUICK ACTION BROWSE -->
 
-                            <a href="{% url 'browse_auctions' %}"
-                               class="quick-action">
+                            <a
+
+                                href="{% url 'browse_auctions' %}"
+
+                                class="quick-action"
+
+                            >
 
                                 <span class="quick-icon">
 
@@ -1455,16 +1879,24 @@
                                 </span>
 
                                 <span>
+
                                     Browse Auctions
+
                                 </span>
 
                                 <i class="bi bi-arrow-right ms-auto"></i>
 
                             </a>
 
+                            <!-- MY BIDS -->
 
-                            <a href="#"
-                               class="quick-action">
+                            <a
+
+                                href="{% url 'my_bids' %}"
+
+                                class="quick-action"
+
+                            >
 
                                 <span class="quick-icon">
 
@@ -1473,7 +1905,9 @@
                                 </span>
 
                                 <span>
+
                                     My Bids
+
                                 </span>
 
                                 <i class="bi bi-arrow-right ms-auto"></i>
@@ -1486,7 +1920,6 @@
 
                 </section>
 
-
                 <!-- PROFILE -->
 
                 <section class="section-card">
@@ -1495,33 +1928,45 @@
 
                         {% if user.profile.profile_picture %}
 
-                        <img src="{{ user.profile.profile_picture.url }}"
-                             class="profile-avatar"
-                             alt="Profile photo">
+                            <img
+
+                                src="{{ user.profile.profile_picture.url }}"
+
+                                class="profile-avatar"
+
+                                alt="Profile photo"
+
+                            >
 
                         {% else %}
 
-                        <div class="profile-avatar profile-placeholder">
+                            <div class="profile-avatar profile-placeholder">
 
-                            <i class="bi bi-person"></i>
+                                <i class="bi bi-person"></i>
 
-                        </div>
+                            </div>
 
                         {% endif %}
 
-
                         <h3>
+
                             {{ user.profile.full_name|default:user.username }}
+
                         </h3>
 
-
                         <p>
+
                             {{ user.email }}
+
                         </p>
 
+                        <a
 
-                        <a href="{% url 'profile' %}"
-                           class="btn btn-outline-auction w-100 mb-2">
+                            href="{% url 'profile' %}"
+
+                            class="btn btn-outline-auction w-100 mb-2"
+
+                        >
 
                             <i class="bi bi-person me-1"></i>
 
@@ -1529,9 +1974,13 @@
 
                         </a>
 
+                        <a
 
-                        <a href="{% url 'edit_profile' %}"
-                           class="btn btn-outline-auction w-100">
+                            href="{% url 'edit_profile' %}"
+
+                            class="btn btn-outline-auction w-100"
+
+                        >
 
                             <i class="bi bi-pencil me-1"></i>
 
@@ -1547,20 +1996,21 @@
 
         </div>
 
+    {% endif %}
 
-        <!-- =================================================
-             BUYER MODE END
-             ================================================= -->
+</main>
 
-        {% endif %}
+<!-- =====================================================
 
-    </main>
+     BOOTSTRAP JS
 
+     ===================================================== -->
 
-    <!-- Bootstrap JS -->
+<script
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js">
-    </script>
+    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+
+></script>
 
 </body>
 

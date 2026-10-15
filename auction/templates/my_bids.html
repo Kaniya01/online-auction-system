@@ -1,0 +1,369 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>My Bids | AuctionHub</title>
+
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+        rel="stylesheet"
+    >
+
+    <style>
+
+        body {
+            background: #f7f9fc;
+            font-family: Arial, sans-serif;
+        }
+
+        .page-container {
+            max-width: 1100px;
+            margin: 40px auto;
+        }
+
+        .page-header {
+            background: white;
+            border-radius: 15px;
+            padding: 25px 30px;
+            margin-bottom: 25px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.06);
+        }
+
+        .page-header h2 {
+            margin: 0;
+            font-weight: 700;
+        }
+
+        .bid-card {
+            background: white;
+            border-radius: 15px;
+            padding: 22px;
+            margin-bottom: 18px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.06);
+        }
+
+        .auction-name {
+            font-size: 20px;
+            font-weight: 700;
+            color: #222;
+        }
+
+        .label {
+            font-size: 13px;
+            color: #777;
+            margin-bottom: 4px;
+        }
+
+        .value {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .status-active {
+            background: #dff7e8;
+            color: #16803c;
+        }
+
+        .status-scheduled {
+            background: #fff3cd;
+            color: #946c00;
+        }
+
+        .status-closed {
+            background: #eeeeee;
+            color: #555;
+        }
+
+        .highest {
+            color: #16803c;
+        }
+
+        .outbid {
+            color: #dc3545;
+        }
+
+        .view-btn {
+            background: #1a4fd6;
+            color: white;
+            border: none;
+            padding: 9px 18px;
+            border-radius: 8px;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .view-btn:hover {
+            background: #123a9e;
+            color: white;
+        }
+
+        .back-btn {
+            color: #1a4fd6;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .back-btn:hover {
+            text-decoration: underline;
+        }
+
+        .empty-box {
+            background: white;
+            border-radius: 15px;
+            padding: 60px 30px;
+            text-align: center;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.06);
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+<div class="container page-container">
+
+
+    <!-- Header -->
+
+    <div class="page-header">
+
+        <a
+            href="{% url 'dashboard' %}"
+            class="back-btn"
+        >
+            ← Back to Dashboard
+        </a>
+
+        <h2 class="mt-3">
+            My Bids
+        </h2>
+
+        <p class="text-muted mb-0">
+            View the auctions you have participated in.
+        </p>
+
+    </div>
+
+
+    <!-- BID LIST -->
+
+    {% if bid_data %}
+
+        {% for bid_info in bid_data %}
+
+            <div class="bid-card">
+
+                <div class="row align-items-center">
+
+
+                    <!-- Auction -->
+
+                    <div class="col-md-3 mb-3 mb-md-0">
+
+                        <div class="label">
+                            Auction
+                        </div>
+
+                        <div class="auction-name">
+                            {{ bid_info.auction.product.name }}
+                        </div>
+
+                    </div>
+
+
+                    <!-- My Bid -->
+
+                    <div class="col-md-2 mb-3 mb-md-0">
+
+                        <div class="label">
+                            My Bid
+                        </div>
+
+                        <div class="value">
+                            ₹{{ bid_info.my_bid.amount }}
+                        </div>
+
+                    </div>
+
+
+                    <!-- Current Highest -->
+
+                    <div class="col-md-2 mb-3 mb-md-0">
+
+                        <div class="label">
+                            Current Highest
+                        </div>
+
+                        <div class="value">
+                            ₹{{ bid_info.auction.current_highest_bid }}
+                        </div>
+
+                    </div>
+
+
+                    <!-- Auction Status -->
+
+                    <div class="col-md-2 mb-3 mb-md-0">
+
+                        <div class="label">
+                            Auction Status
+                        </div>
+
+
+                        {% if bid_info.auction.status == 'ACTIVE' %}
+
+                            <span class="status-badge status-active">
+                                Active
+                            </span>
+
+
+                        {% elif bid_info.auction.status == 'SCHEDULED' %}
+
+                            <span class="status-badge status-scheduled">
+                                Scheduled
+                            </span>
+
+
+                        {% elif bid_info.auction.status == 'CLOSED' %}
+
+                            <span class="status-badge status-closed">
+                                Closed
+                            </span>
+
+
+                        {% else %}
+
+                            <span class="status-badge status-closed">
+                                {{ bid_info.auction.status }}
+                            </span>
+
+                        {% endif %}
+
+                    </div>
+
+
+                    <!-- Result -->
+
+                    <div class="col-md-3 text-md-end">
+
+                        <div class="mb-2">
+
+
+                            {% if bid_info.auction.status == 'CLOSED' %}
+
+                                {% if bid_info.auction.highest_bidder_id == request.user.id %}
+
+                                    <span class="highest fw-bold">
+                                        ✓ You won
+                                    </span>
+
+                                {% else %}
+
+                                    <span class="outbid fw-bold">
+                                        Auction ended
+                                    </span>
+
+                                {% endif %}
+
+
+                            {% elif bid_info.auction.status == 'ACTIVE' %}
+
+                                {% if bid_info.auction.highest_bidder_id == request.user.id %}
+
+                                    <span class="highest fw-bold">
+                                        ✓ You are the highest bidder
+                                    </span>
+
+                                {% else %}
+
+                                    <span class="outbid fw-bold">
+                                        Outbid
+                                    </span>
+
+                                {% endif %}
+
+
+                            {% elif bid_info.auction.status == 'SCHEDULED' %}
+
+                                <span class="text-muted fw-bold">
+                                    Auction not started
+                                </span>
+
+
+                            {% else %}
+
+                                <span class="text-muted fw-bold">
+                                    {{ bid_info.auction.status }}
+                                </span>
+
+                            {% endif %}
+
+                        </div>
+
+
+                        <a
+                            href="{% url 'auction_detail' bid_info.auction.id %}"
+                            class="view-btn"
+                        >
+                            View Auction
+                        </a>
+
+                    </div>
+
+
+                </div>
+
+            </div>
+
+        {% endfor %}
+
+
+    {% else %}
+
+
+        <!-- Empty State -->
+
+        <div class="empty-box">
+
+            <h4>
+                You haven't placed any bids yet.
+            </h4>
+
+            <p class="text-muted mt-2">
+                Browse available auctions and place your first bid.
+            </p>
+
+            <a
+                href="{% url 'browse_auctions' %}"
+                class="view-btn mt-3"
+            >
+                Browse Auctions
+            </a>
+
+        </div>
+
+
+    {% endif %}
+
+
+</div>
+
+
+</body>
+
+</html>

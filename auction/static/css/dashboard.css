@@ -1342,5 +1342,439 @@ h3 {
     .auction-datetime-group {
         padding: 15px;
     }
+}
+/* =====================================================
+   BUYING ACTIVITY
+   ===================================================== */
+
+.buying-section,
+.won-section {
+    margin-top: 28px;
+}
+
+.section-header {
+    padding: 24px 28px;
+    border-bottom: 1px solid #dfe5ed;
+}
+
+.section-label {
+    display: block;
+    color: #1455d9;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    margin-bottom: 5px;
+}
+
+.section-header h2 {
+    margin: 0;
+    color: #102d55;
+    font-size: 27px;
+    font-weight: 700;
+}
+
+
+/* =====================================================
+   TABLE
+   ===================================================== */
+
+.activity-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.activity-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.activity-table thead {
+    background: #f8fafc;
+}
+
+.activity-table th {
+    padding: 17px 16px;
+    text-align: left;
+    color: #65748b;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: .5px;
+    border-bottom: 1px solid #dfe5ed;
+}
+
+.activity-table td {
+    padding: 20px 16px;
+    border-bottom: 1px solid #edf1f5;
+    color: #26384f;
+    font-size: 15px;
+}
+
+.activity-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+
+/* =====================================================
+   PRODUCT
+   ===================================================== */
+
+.product-name {
+    color: #102d55;
+    font-size: 16px;
+    font-weight: 700;
+}
+
+
+/* =====================================================
+   MONEY
+   ===================================================== */
+
+.money-value {
+    color: #102d55;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+
+/* =====================================================
+   STATUS PILLS
+   ===================================================== */
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 7px 13px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.status-winning {
+    background: #e6f7ed;
+    color: #168044;
+}
+
+.status-outbid {
+    background: #fff0f2;
+    color: #ef3340;
+}
+
+.status-won {
+    background: #e6f7ed;
+    color: #168044;
+}
+
+.status-paid {
+    background: #e6f7ed;
+    color: #168044;
+}
+
+.status-pending {
+    background: #fff2df;
+    color: #d97900;
+}
+
+
+/* =====================================================
+   END TIME
+   ===================================================== */
+
+.ending-time {
+    color: #5f6f84;
+    font-size: 14px;
+}
+
+
+/* =====================================================
+   EMPTY STATE
+   ===================================================== */
+
+.empty-activity {
+    padding: 35px 28px;
+    text-align: center;
+    color: #718096;
+}
+
+.empty-activity p {
+    margin: 0;
+}
+
+
+/* ---------------------------------------------------------
+   HEADER
+   --------------------------------------------------------- */
+
+.buying-activity-card .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px 28px;
+    border-bottom: 1px solid #dce3ed;
+    background: #ffffff;
+}
+
+.buying-activity-card .section-label {
+    display: block;
+    color: #1554d1;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    margin-bottom: 5px;
+}
+
+.buying-activity-card h2 {
+    margin: 0;
+    color: #102a56;
+    font-size: 25px;
+    font-weight: 700;
+}
+
+.browse-link {
+    color: #1554d1;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 15px;
+}
+
+.browse-link:hover {
+    text-decoration: underline;
+}
+
+
+/* ---------------------------------------------------------
+   TABLE HEADER
+   --------------------------------------------------------- */
+
+.buying-table-header {
+    display: grid;
+    grid-template-columns:
+        2fr
+        1.4fr
+        1.4fr
+        1.4fr
+        1.3fr;
+
+    padding: 17px 28px;
+
+    background: #f8fafc;
+
+    border-bottom: 1px solid #dce3ed;
+
+    color: #637083;
+
+    font-size: 12px;
+
+    font-weight: 700;
+
+    letter-spacing: 0.5px;
+}
+
+
+/* ---------------------------------------------------------
+   BUYING ROW
+   --------------------------------------------------------- */
+
+.buying-row {
+    display: grid;
+
+    grid-template-columns:
+        2fr
+        1.4fr
+        1.4fr
+        1.4fr
+        1.3fr;
+
+    align-items: center;
+
+    padding: 20px 28px;
+
+    border-bottom: 1px solid #edf0f5;
+
+    color: #182b49;
+}
+
+.buying-row:last-child {
+    border-bottom: none;
+}
+
+.buying-row:hover {
+    background: #fafcff;
+}
+
+
+/* ---------------------------------------------------------
+   PRODUCT
+   --------------------------------------------------------- */
+
+.product-link {
+    color: #102a56;
+    font-size: 15px;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.product-link:hover {
+    color: #1554d1;
+}
+
+
+/* ---------------------------------------------------------
+   PRICES
+   --------------------------------------------------------- */
+
+.buying-price {
+    color: #182b49;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+
+/* ---------------------------------------------------------
+   STATUS
+   --------------------------------------------------------- */
+
+.buying-status {
+    display: inline-block;
+
+    padding: 7px 12px;
+
+    border-radius: 20px;
+
+    font-size: 12px;
+
+    font-weight: 700;
+}
+
+
+/* Highest bidder */
+
+.status-winning {
+    background: #e7f8ef;
+    color: #16804c;
+}
+
+
+/* Outbid */
+
+.status-outbid {
+    background: #fff0f1;
+    color: #e5394f;
+}
+
+
+/* Scheduled */
+
+.status-scheduled {
+    background: #fff5d8;
+    color: #9a7200;
+}
+
+
+/* Closed */
+
+.status-closed {
+    background: #edf0f3;
+    color: #667085;
+}
+
+
+/* ---------------------------------------------------------
+   END TIME
+   --------------------------------------------------------- */
+
+.buying-end {
+    color: #344054;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.buying-end small {
+    color: #7a8699;
+    font-size: 12px;
+}
+
+
+/* ---------------------------------------------------------
+   EMPTY STATE
+   --------------------------------------------------------- */
+
+.empty-buying {
+    text-align: center;
+    padding: 50px 25px;
+}
+
+.empty-icon {
+    font-size: 35px;
+    margin-bottom: 12px;
+}
+
+.empty-buying h3 {
+    color: #102a56;
+    font-size: 20px;
+    margin-bottom: 8px;
+}
+
+.empty-buying p {
+    color: #7a8699;
+    margin-bottom: 20px;
+}
+
+.browse-auctions-btn {
+    display: inline-block;
+
+    background: #1554d1;
+
+    color: white;
+
+    padding: 10px 18px;
+
+    border-radius: 8px;
+
+    text-decoration: none;
+
+    font-weight: 600;
+}
+
+.browse-auctions-btn:hover {
+    background: #103fa1;
+    color: white;
+}
+
+
+/* ---------------------------------------------------------
+   RESPONSIVE
+   --------------------------------------------------------- */
+
+@media (max-width: 900px) {
+
+    .buying-table-header {
+        display: none;
+    }
+
+    .buying-row {
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+    }
+
+    .buying-product {
+        grid-column: 1 / -1;
+    }
+
+}
+
+
+@media (max-width: 600px) {
+
+    .buying-activity-card .card-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .buying-row {
+        grid-template-columns: 1fr;
+    }
 
 }

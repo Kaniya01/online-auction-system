@@ -292,6 +292,62 @@
 
 
         /* =========================
+           BID PANEL
+           ========================= */
+
+        .bid-panel {
+            background: #eef6ff;
+            border: 1px solid #d9e7ff;
+            border-radius: 12px;
+
+            padding: 20px;
+
+            margin-top: 22px;
+        }
+
+        .bid-panel h4 {
+            color: #14213d;
+            font-size: 18px;
+            font-weight: 700;
+
+            margin-bottom: 5px;
+        }
+
+        .bid-input {
+            height: 48px;
+
+            border: 1px solid #d9e0eb;
+            border-radius: 9px;
+        }
+
+        .bid-input:focus {
+            border-color: #2155d9;
+
+            box-shadow: 0 0 0 0.2rem rgba(33, 85, 217, 0.12);
+        }
+
+        .btn-bid {
+            background: #2155d9;
+            border-color: #2155d9;
+
+            color: #ffffff;
+
+            font-weight: 600;
+
+            padding: 11px 16px;
+
+            border-radius: 9px;
+        }
+
+        .btn-bid:hover {
+            background: #1744b7;
+            border-color: #1744b7;
+
+            color: #ffffff;
+        }
+
+
+        /* =========================
            RESPONSIVE
            ========================= */
 
@@ -814,6 +870,136 @@
                         </div>
 
                     </div>
+
+
+
+                    <!-- BID PANEL -->
+
+                    {% if auction.status == 'ACTIVE' %}
+
+                        {% if auction.product.seller_id == request.user.id %}
+
+                            <div class="alert alert-warning mt-3">
+
+                                <i class="bi bi-exclamation-triangle me-2"></i>
+
+                                You cannot bid on your own auction.
+
+                            </div>
+
+                        {% else %}
+
+                            <div class="bid-panel">
+
+                                <h4>
+
+                                    Place Your Bid
+
+                                </h4>
+
+                                <p class="text-muted small mb-3">
+
+                                    Enter an amount greater than the current bid.
+
+                                </p>
+
+
+                                <form
+                                    method="POST"
+                                    action="{% url 'place_bid' auction.id %}"
+                                >
+
+                                    {% csrf_token %}
+
+
+                                    <div class="mb-3">
+
+                                        <input
+                                            type="number"
+                                            name="amount"
+                                            class="form-control bid-input"
+                                            min="{{ auction.current_highest_bid }}"
+                                            step="0.01"
+                                            placeholder="Enter your bid"
+                                            required
+                                        >
+
+                                    </div>
+
+
+                                    <button
+                                        type="submit"
+                                        class="btn btn-bid w-100"
+                                    >
+
+                                        <i class="bi bi-hammer me-1"></i>
+
+                                        Place Bid
+
+                                    </button>
+
+                                </form>
+
+
+                                {% if my_bid %}
+
+                                    <div class="mt-3 small">
+
+                                        Your latest bid:
+
+                                        <strong>
+
+                                            ₹{{ my_bid.amount }}
+
+                                        </strong>
+
+                                    </div>
+
+                                {% endif %}
+
+                            </div>
+
+                        {% endif %}
+
+
+                    {% elif auction.status == 'SCHEDULED' %}
+
+                        <div class="alert alert-info mt-3">
+
+                            <i class="bi bi-clock me-2"></i>
+
+                            Bidding will be available when this auction starts.
+
+                        </div>
+
+
+                    {% elif auction.status == 'CLOSED' %}
+
+                        <div class="alert alert-secondary mt-3">
+
+                            <i class="bi bi-lock-fill me-2"></i>
+
+                            This auction has ended.
+
+                            {% if auction.highest_bidder %}
+
+                                Winner:
+
+                                <strong>
+
+                                    {{ auction.highest_bidder.username }}
+
+                                </strong>
+
+                            {% else %}
+
+                                No bids were placed.
+
+                            {% endif %}
+
+                        </div>
+
+                    {% endif %}
 
 
 
