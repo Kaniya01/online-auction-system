@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
-
+from django.db import transaction
 from .models import Auction, Bid
 
 
@@ -222,116 +222,106 @@ def auction_detail(request, auction_id):
 @login_required
 def place_bid(request, auction_id):
 
-    auction = get_object_or_404(
-        Auction.objects.select_related(
-            'product'
-        ),
-        id=auction_id
-    )
-
-    # Always refresh status before accepting a bid.
-    auction = update_auction_status(auction)
-
+    # Only POST requests can place bids.
     if request.method != 'POST':
         return redirect(
             'auction_detail',
-            auction_id=auction.id
+            auction_id=auction_id
         )
 
-    # Seller cannot bid on their own auction.
-    if auction.product.seller_id == request.user.id:
-        messages.error(
-            request,
-            'You cannot bid on your own auction.'
+    with transaction.atomic():
+
+        # Lock this auction row so simultaneous bids are processed
+        # one at a time.
+        auction = get_object_or_404(
+            Auction.objects.select_for_update().select_related(
+                'product'
+            ),
+            id=auction_id
         )
 
-        return redirect(
-            'auction_detail',
-            auction_id=auction.id
-        )
+        # Refresh status and highest bid while holding the lock.
+        auction = update_auction_status(auction)
 
-    # Auction must be live.
-    if auction.status != 'ACTIVE':
-        if auction.status == 'SCHEDULED':
+        # Prevent sellers from bidding on their own products.
+        if auction.product.seller_id == request.user.id:
             messages.error(
                 request,
-                'This auction has not started yet.'
+                'You cannot bid on your own auction.'
+            )
+            return redirect(
+                'auction_detail',
+                auction_id=auction.id
             )
 
-        elif auction.status == 'CLOSED':
+        # Accept bids only while the auction is active.
+        if auction.status != 'ACTIVE':
+            if auction.status == 'SCHEDULED':
+                message = 'This auction has not started yet.'
+            elif auction.status == 'CLOSED':
+                message = 'This auction has already ended.'
+            else:
+                message = 'Bidding is not available for this auction.'
+
+            messages.error(request, message)
+            return redirect(
+                'auction_detail',
+                auction_id=auction.id
+            )
+
+        # Read the submitted amount.
+        amount_text = request.POST.get('amount', '').strip()
+
+        if not amount_text:
+            messages.error(request, 'Please enter a bid amount.')
+            return redirect(
+                'auction_detail',
+                auction_id=auction.id
+            )
+
+        # Validate the amount.
+        try:
+            amount = Decimal(amount_text)
+        except (InvalidOperation, ValueError):
+            messages.error(request, 'Please enter a valid bid amount.')
+            return redirect(
+                'auction_detail',
+                auction_id=auction.id
+            )
+
+        # Reject NaN, Infinity, zero, negative amounts,
+        # and amounts that do not beat the current bid.
+        if (
+            not amount.is_finite()
+            or amount <= 0
+            or amount <= auction.current_highest_bid
+        ):
             messages.error(
                 request,
-                'This auction has already ended.'
+                f'Your bid must be a valid amount greater than '
+                f'₹{auction.current_highest_bid}.'
+            )
+            return redirect(
+                'auction_detail',
+                auction_id=auction.id
             )
 
-        else:
-            messages.error(
-                request,
-                'Bidding is not available for this auction.'
-            )
-
-        return redirect(
-            'auction_detail',
-            auction_id=auction.id
+        # Record the bid and update the auction together.
+        Bid.objects.create(
+            auction=auction,
+            buyer=request.user,
+            amount=amount
         )
 
-    # Get amount from form.
-    amount_text = request.POST.get('amount', '').strip()
+        auction.current_highest_bid = amount
+        auction.highest_bidder = request.user
 
-    if not amount_text:
-        messages.error(
-            request,
-            'Please enter a bid amount.'
+        auction.save(
+            update_fields=[
+                'current_highest_bid',
+                'highest_bidder'
+            ]
         )
-
-        return redirect(
-            'auction_detail',
-            auction_id=auction.id
-        )
-
-    # Convert amount safely.
-    try:
-        amount = Decimal(amount_text)
-    except (InvalidOperation, ValueError):
-        messages.error(
-            request,
-            'Please enter a valid bid amount.'
-        )
-
-        return redirect(
-            'auction_detail',
-            auction_id=auction.id
-        )
-
-    # Bid must be greater than current highest bid.
-    if amount <= auction.current_highest_bid:
-        messages.error(
-            request,
-            f'Your bid must be greater than ₹{auction.current_highest_bid}.'
-        )
-
-        return redirect(
-            'auction_detail',
-            auction_id=auction.id
-        )
-
-    # Create bid.
-    Bid.objects.create(
-        auction=auction,
-        buyer=request.user,
-        amount=amount
-    )
-
-    # Update highest bid.
-    auction.current_highest_bid = amount
-    auction.highest_bidder = request.user
-
-    auction.save(
-        update_fields=[
-            'current_highest_bid',
-            'highest_bidder'
-        ]
-    )
 
     messages.success(
         request,
@@ -342,6 +332,7 @@ def place_bid(request, auction_id):
         'auction_detail',
         auction_id=auction.id
     )
+
 # =========================================================
 # MY BIDS
 # =========================================================

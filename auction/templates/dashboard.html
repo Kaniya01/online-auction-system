@@ -1641,224 +1641,82 @@
 
                 <section class="section-card mb-4">
 
-
                     <div class="section-card-header">
-
-
                         <div>
-
-                            <span class="section-kicker">
-
-                                RESULTS
-
-                            </span>
-
-
-                            <h2>
-
-                                Won Auctions
-
-                            </h2>
-
+                            <span class="section-kicker">RESULTS</span>
+                            <h2>Won Auctions</h2>
                         </div>
-
-
                     </div>
-
-
 
                     <div class="section-card-body">
 
-
                         {% if won_auctions %}
 
-
                             <div class="table-responsive">
-
                                 <table class="table auction-table">
-
-
                                     <thead>
-
                                         <tr>
-
-                                            <th>
-                                                Product
-                                            </th>
-
-                                            <th>
-                                                Winning Bid
-                                            </th>
-
-                                            <th>
-                                                Status
-                                            </th>
-
-                                            <th>
-                                                Payment
-                                            </th>
-
+                                            <th>Product</th>
+                                            <th>Winning Bid</th>
+                                            <th>Status</th>
+                                            <th>Payment</th>
                                         </tr>
-
                                     </thead>
 
-
                                     <tbody>
-
-
                                         {% for auction in won_auctions %}
-
-
                                             <tr>
-
-
                                                 <!-- PRODUCT -->
-
                                                 <td class="product-name">
-
-                                                    <strong>
-
-                                                        {{ auction.product.name }}
-
-                                                    </strong>
-
+                                                    <strong>{{ auction.product.name }}</strong>
                                                 </td>
-
-
 
                                                 <!-- WINNING BID -->
-
                                                 <td>
-
-                                                    <strong>
-
-                                                        ₹{{ auction.current_highest_bid|floatformat:2 }}
-
-                                                    </strong>
-
+                                                    <strong>₹{{ auction.current_highest_bid|floatformat:2 }}</strong>
                                                 </td>
-
-
 
                                                 <!-- STATUS -->
-
                                                 <td>
-
                                                     <span class="status-pill status-won">
-
                                                         <i class="bi bi-trophy"></i>
-
                                                         Won
-
                                                     </span>
-
                                                 </td>
-
-
 
                                                 <!-- PAYMENT -->
-
                                                 <td>
-
-
-                                                    {% if auction.latest_payment %}
-
-
-                                                        {% if auction.latest_payment.payment_status == 'COMPLETED' %}
-
-
-                                                            <span class="status-pill status-paid">
-
-                                                                <i class="bi bi-check-circle"></i>
-
-                                                                Paid
-
-                                                            </span>
-
-
-                                                        {% else %}
-
-
-                                                            <span class="status-pill status-pending">
-
-                                                                <i class="bi bi-clock"></i>
-
-                                                                Payment Pending
-
-                                                            </span>
-
-
-                                                        {% endif %}
-
-
-                                                    {% else %}
-
-
-                                                        <span class="status-pill status-pending">
-
-                                                            <i class="bi bi-clock"></i>
-
-                                                            Payment Pending
-
+                                                    {% if auction.latest_payment and auction.latest_payment.payment_status == 'COMPLETED' %}
+                                                        <span class="status-pill status-paid">
+                                                            <i class="bi bi-check-circle"></i>
+                                                            Paid
                                                         </span>
-
-
+                                                    {% else %}
+                                                        <a
+                                                            href="{% url 'make_payment' auction.id %}"
+                                                            class="btn btn-auction-primary btn-sm"
+                                                        >
+                                                            Pay Now
+                                                        </a>
                                                     {% endif %}
-
-
                                                 </td>
-
-
                                             </tr>
-
-
                                         {% endfor %}
-
-
                                     </tbody>
-
-
                                 </table>
-
                             </div>
-
 
                         {% else %}
-
-
                             <div class="empty-state">
-
-
                                 <div class="empty-state-icon">
-
                                     <i class="bi bi-trophy"></i>
-
                                 </div>
-
-
-                                <h3>
-
-                                    No won auctions yet
-
-                                </h3>
-
-
-                                <p>
-
-                                    Auctions you win will appear here.
-
-                                </p>
-
-
+                                <h3>No won auctions yet</h3>
+                                <p>Auctions you win will appear here.</p>
                             </div>
-
-
                         {% endif %}
 
-
                     </div>
-
-
                 </section>
 
 

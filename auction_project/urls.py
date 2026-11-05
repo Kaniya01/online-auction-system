@@ -5,6 +5,7 @@ from django.conf.urls.static import static
 
 from auction import views
 from auction import browse_views
+from auction import payment_views
 
 
 urlpatterns = [
@@ -114,6 +115,21 @@ urlpatterns = [
         browse_views.my_bids,
         name='my_bids'
     ),
+    # =====================================================
+# BUYER - PAYMENTS
+# =====================================================
+
+    path(
+        'auction/<int:auction_id>/payment/',
+        payment_views.make_payment,
+        name='make_payment'
+    ),
+
+    path(
+       'my-payments/',
+       payment_views.my_payments,
+       name='my_payments'
+    ),
 
 
     # =====================================================
@@ -162,3 +178,5 @@ if settings.DEBUG:
         settings.MEDIA_URL,
         document_root=settings.MEDIA_ROOT
     )
+
+    

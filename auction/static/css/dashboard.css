@@ -1778,3 +1778,64 @@ h3 {
     }
 
 }
+/* Dashboard color refresh */
+body {
+    background: #f5f3ff;
+    color: #25213b;
+}
+
+/* Main dashboard cards */
+.section-card,
+.stat-card,
+.welcome-banner,
+.mode-switcher {
+    background: #ffffff;
+    border: 1px solid #e8e2ff;
+    border-radius: 16px;
+    box-shadow: 0 6px 20px rgba(74, 45, 130, 0.08);
+}
+
+/* Welcome banner */
+.welcome-banner {
+    background: linear-gradient(135deg, #ede9fe, #fdf2f8);
+}
+
+/* Section headings */
+.section-card-header h2,
+.welcome-banner h1 {
+    color: #382568;
+}
+
+/* Table header and row hover */
+.auction-table thead th {
+    background: #f3efff;
+    color: #5b438f;
+}
+
+.auction-table tbody tr:hover {
+    background: #faf8ff;
+}
+
+/* Pay Now and primary buttons */
+.btn-auction-primary {
+    background: #6d28d9;
+    border-color: #6d28d9;
+    color: #ffffff;
+}
+
+.btn-auction-primary:hover {
+    background: #5b21b6;
+    border-color: #5b21b6;
+    color: #ffffff;
+}
+
+/* Paid and pending status colors */
+.status-paid {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.status-pending {
+    background: #fef3c7;
+    color: #92400e;
+}
