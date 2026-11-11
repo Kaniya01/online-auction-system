@@ -25,6 +25,7 @@
             <a href="{% url 'dashboard' %}" class="sidebar-link {% if request.resolver_match.url_name == 'dashboard' or request.resolver_match.url_name == 'home' %}active{% endif %}"><i class="bi bi-grid-1x2"></i><span>Overview</span></a>
             <a href="{% url 'browse_auctions' %}" class="sidebar-link {% if request.resolver_match.url_name == 'browse_auctions' or request.resolver_match.url_name == 'auction_detail' %}active{% endif %}"><i class="bi bi-search"></i><span>Browse Auctions</span></a>
             <a href="{% url 'my_watchlist' %}" class="sidebar-link {% if request.resolver_match.url_name == 'my_watchlist' %}active{% endif %}"><i class="bi bi-bookmark-heart"></i><span>My Watchlist</span></a>
+            <a href="{% url 'recently_viewed' %}" class="sidebar-link {% if request.resolver_match.url_name == 'recently_viewed' %}active{% endif %}"><i class="bi bi-clock-history"></i><span>Recently Viewed</span></a>
             <a href="{% url 'my_bids' %}" class="sidebar-link {% if request.resolver_match.url_name == 'my_bids' %}active{% endif %}"><i class="bi bi-hammer"></i><span>My Bids</span></a>
             <span class="sidebar-link disabled" aria-disabled="true" title="Planned for a later phase"><i class="bi bi-trophy"></i><span>Won Auctions</span><small>Later</small></span>
             <span class="sidebar-link disabled" aria-disabled="true" title="Planned for a later phase"><i class="bi bi-clock-history"></i><span>Auction History</span><small>Later</small></span>
@@ -42,6 +43,9 @@
             {% if request.user.is_superuser or perms.auction.view_auction or perms.auction.change_auction %}
             <a href="{% url 'admin:auction_auction_changelist' %}" class="sidebar-link"><i class="bi bi-megaphone"></i><span>Manage Auctions</span></a>
             {% endif %}
+            {% if request.user.is_superuser or perms.auction.view_auctionreport or perms.auction.change_auctionreport %}
+            <a href="{% url 'admin:auction_auctionreport_changelist' %}" class="sidebar-link"><i class="bi bi-flag"></i><span>Review Reports</span></a>
+            {% endif %}
             <span class="sidebar-link disabled" aria-disabled="true" title="Planned for a later phase"><i class="bi bi-file-earmark-bar-graph"></i><span>Reports</span><small>Later</small></span>
             <span class="sidebar-link disabled" aria-disabled="true" title="Planned for a later phase"><i class="bi bi-bar-chart"></i><span>Platform Analytics</span><small>Later</small></span>
         {% endif %}
@@ -49,9 +53,9 @@
       <div class="sidebar-account-nav">
         <div class="sidebar-section-label">Account</div>
         <a href="{% url 'profile' %}" class="sidebar-link {% if request.resolver_match.url_name == 'profile' or request.resolver_match.url_name == 'edit_profile' %}active{% endif %}"><i class="bi bi-person"></i><span>My Profile</span></a>
-        <span class="sidebar-link disabled" aria-disabled="true" title="Planned for a later phase"><i class="bi bi-gear"></i><span>Settings</span><small>Later</small></span>
-        <span class="sidebar-link disabled" aria-disabled="true" title="Planned for a later phase"><i class="bi bi-question-circle"></i><span>Help &amp; FAQ</span><small>Later</small></span>
-        <span class="sidebar-link disabled" aria-disabled="true" title="Planned for a later phase"><i class="bi bi-file-text"></i><span>Terms &amp; Privacy</span><small>Later</small></span>
+        <a href="{% url 'password_change' %}" class="sidebar-link {% if request.resolver_match.url_name == 'password_change' %}active{% endif %}"><i class="bi bi-gear"></i><span>Settings &amp; Password</span></a>
+        <a href="{% url 'help_faq' %}" class="sidebar-link {% if request.resolver_match.url_name == 'help_faq' %}active{% endif %}"><i class="bi bi-question-circle"></i><span>Help &amp; FAQ</span></a>
+        <a href="{% url 'terms' %}" class="sidebar-link {% if request.resolver_match.url_name == 'terms' or request.resolver_match.url_name == 'privacy' or request.resolver_match.url_name == 'auction_rules' %}active{% endif %}"><i class="bi bi-file-text"></i><span>Policies</span></a>
         <a href="{% url 'logout' %}" class="sidebar-link logout-link"><i class="bi bi-box-arrow-right"></i><span>Logout</span></a>
       </div>
     </nav>

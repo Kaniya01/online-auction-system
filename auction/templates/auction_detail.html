@@ -513,6 +513,9 @@
                         </form>
                         {% endif %}
                     {% endif %}
+                    {% if mode == 'BUYER' and auction.product.seller_id != request.user.id %}
+                        <a class="btn btn-sm btn-link text-secondary mb-3" href="{% url 'report_auction' auction.id %}"><i class="bi bi-flag me-1" aria-hidden="true"></i>Report this listing</a>
+                    {% endif %}
 
 
 

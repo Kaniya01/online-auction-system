@@ -43,6 +43,8 @@
                     <ul class="dropdown-menu dropdown-menu-end">
                         <li><a class="dropdown-item" href="{% url 'profile' %}"><i class="bi bi-person me-2"></i>My Profile</a></li>
                         <li><a class="dropdown-item" href="{% url 'edit_profile' %}"><i class="bi bi-pencil me-2"></i>Edit Profile</a></li>
+                        <li><a class="dropdown-item" href="{% url 'password_change' %}"><i class="bi bi-key me-2"></i>Change Password</a></li>
+                        <li><a class="dropdown-item" href="{% url 'help_faq' %}"><i class="bi bi-question-circle me-2"></i>Help &amp; FAQ</a></li>
                         <li><a class="dropdown-item" href="{% url 'switch_mode' 'BUYER' %}"><i class="bi bi-cart3 me-2"></i>Buyer mode</a></li>
                         <li><a class="dropdown-item" href="{% url 'switch_mode' 'SELLER' %}"><i class="bi bi-shop me-2"></i>Seller mode</a></li>
                         {% if request.user.is_staff or request.user.is_superuser %}<li><a class="dropdown-item" href="{% url 'admin:index' %}"><i class="bi bi-shield-lock me-2"></i>Administration</a></li>{% endif %}

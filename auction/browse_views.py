@@ -1,13 +1,20 @@
 from decimal import Decimal, InvalidOperation
+from datetime import timedelta
 
 from django.contrib import messages
+from django.contrib.auth import get_user_model
+from django.core.exceptions import PermissionDenied
+from django.db import IntegrityError
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.urls import reverse
 
-from .models import Auction, Bid, Notification, Watchlist
+from .models import Auction, Bid, Watchlist, RecentlyViewedAuction, AuctionReport
+from .forms import AuctionReportForm
+from .notifications import notify_user
 
 
 # =========================================================
@@ -117,15 +124,43 @@ def update_auction_status(auction):
     )
 
     if new_status == 'CLOSED' and previous_status != 'CLOSED' and new_highest_bidder:
-        Notification.objects.create(
-            user=new_highest_bidder,
+        notify_user(
+            new_highest_bidder,
             notification_type='WINNER',
             title=f"You won {auction.product.name}",
-            message=(
-                f"The auction for {locked_auction.product.name} has ended. "
-                f"Your winning bid was ₹{new_highest_bid}."
-            ),
+            message=f"The auction for {locked_auction.product.name} has ended. Your winning bid was ₹{new_highest_bid}.",
+            event_key=f'auction-winner-{locked_auction.pk}',
+            link_url=reverse('auction_detail', args=[locked_auction.pk]),
         )
+        notify_user(
+            locked_auction.product.seller,
+            notification_type='AUCTION_CLOSED',
+            title=f"Auction closed: {locked_auction.product.name}",
+            message=f"Your auction closed with a winning bid of ₹{new_highest_bid}.",
+            event_key=f'auction-closed-seller-{locked_auction.pk}',
+            link_url=reverse('auction_detail', args=[locked_auction.pk]),
+        )
+    elif new_status == 'CLOSED' and previous_status != 'CLOSED':
+        notify_user(
+            locked_auction.product.seller,
+            notification_type='AUCTION_CLOSED',
+            title=f"Auction closed: {locked_auction.product.name}",
+            message='Your auction has ended without any bids.',
+            event_key=f'auction-closed-seller-{locked_auction.pk}',
+            link_url=reverse('auction_detail', args=[locked_auction.pk]),
+        )
+
+    if new_status == 'ACTIVE' and locked_auction.end_time - now <= timedelta(hours=24):
+        bidder_ids = locked_auction.bids.order_by().values_list('buyer_id', flat=True).distinct()
+        for bidder in get_user_model().objects.filter(pk__in=bidder_ids):
+            notify_user(
+                bidder,
+                notification_type='AUCTION_ENDING',
+                title=f"Auction ending soon: {locked_auction.product.name}",
+                message=f"The auction for {locked_auction.product.name} ends within 24 hours.",
+                event_key=f'auction-ending-{locked_auction.pk}-{bidder.pk}',
+                link_url=reverse('auction_detail', args=[locked_auction.pk]),
+            )
 
     auction.status = locked_auction.status
     auction.current_highest_bid = locked_auction.current_highest_bid
@@ -216,6 +251,13 @@ def auction_detail(request, auction_id):
     # Refresh auction status.
     auction = update_auction_status(auction)
 
+    if request.session.get('mode', 'BUYER') == 'BUYER':
+        RecentlyViewedAuction.objects.update_or_create(
+            user=request.user, auction=auction, defaults={'last_viewed': timezone.now()},
+        )
+        stale_ids = RecentlyViewedAuction.objects.filter(user=request.user).order_by('-last_viewed').values_list('pk', flat=True)[20:]
+        RecentlyViewedAuction.objects.filter(pk__in=stale_ids).delete()
+
     # Latest bid placed by the current buyer.
     my_bid = auction.bids.filter(
         buyer=request.user
@@ -238,6 +280,45 @@ def auction_detail(request, auction_id):
         'auction_detail.html',
         context
     )
+
+
+@login_required
+def recently_viewed(request):
+    entries = RecentlyViewedAuction.objects.filter(user=request.user).select_related(
+        'auction', 'auction__product', 'auction__product__seller'
+    ).prefetch_related('auction__product__images').order_by('-last_viewed')[:20]
+    available = [entry for entry in entries if entry.auction.status != 'CANCELLED']
+    return render(request, 'recently_viewed.html', {'recent_auctions': available})
+
+
+@login_required
+def report_auction(request, auction_id):
+    auction = get_object_or_404(Auction.objects.select_related('product'), pk=auction_id)
+    update_auction_status(auction)
+    if request.session.get('mode', 'BUYER') != 'BUYER':
+        raise PermissionDenied('Switch to Buyer mode to report an auction.')
+    if auction.product.seller_id == request.user.id:
+        raise PermissionDenied('You cannot report your own listing.')
+
+    if AuctionReport.objects.filter(auction=auction, reporter=request.user).exists():
+        messages.info(request, 'You have already reported this auction. Staff can review your existing report.')
+        return redirect('auction_detail', auction_id=auction.pk)
+
+    form = AuctionReportForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        try:
+            AuctionReport.objects.create(
+                auction=auction,
+                reporter=request.user,
+                reason=form.cleaned_data['reason'],
+                description=form.cleaned_data['description'],
+            )
+        except IntegrityError:
+            messages.info(request, 'You have already reported this auction.')
+        else:
+            messages.success(request, 'Thank you. Your report was submitted for staff review.')
+        return redirect('auction_detail', auction_id=auction.pk)
+    return render(request, 'report_auction.html', {'auction': auction, 'form': form})
 
 
 @login_required
@@ -347,22 +428,26 @@ def place_bid(request, auction_id):
                 )
             else:
                 previous_highest_bidder = auction.highest_bidder
-                Bid.objects.create(auction=auction, buyer=request.user, amount=amount)
+                bid = Bid.objects.create(auction=auction, buyer=request.user, amount=amount)
                 auction.current_highest_bid = amount
                 auction.highest_bidder = request.user
                 auction.save(update_fields=['current_highest_bid', 'highest_bidder'])
                 if previous_highest_bidder and previous_highest_bidder != request.user:
-                    Notification.objects.create(
-                        user=previous_highest_bidder,
+                    notify_user(
+                        previous_highest_bidder,
                         title=f"You were outbid on {auction.product.name}",
                         message=f"A new bid of ₹{amount} was placed on {auction.product.name}.",
                         notification_type='OUTBID',
+                        event_key=f'bid-outbid-{bid.pk}',
+                        link_url=reverse('auction_detail', args=[auction.pk]),
                     )
-                Notification.objects.create(
-                    user=auction.product.seller,
+                notify_user(
+                    auction.product.seller,
                     title=f"New bid on {auction.product.name}",
                     message=f"{request.user.username} bid ₹{amount} on your auction.",
                     notification_type='BID',
+                    event_key=f'bid-seller-{bid.pk}',
+                    link_url=reverse('auction_detail', args=[auction.pk]),
                 )
                 response = None
 

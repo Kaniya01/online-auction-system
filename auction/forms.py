@@ -1,8 +1,21 @@
+import logging
+
 from django import forms
+from django.contrib.auth.forms import PasswordResetForm
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.models import User
 from django.utils import timezone
-from .models import Profile, Product, Auction
+from .models import Profile, Product, Auction, AuctionReport
+
+logger = logging.getLogger(__name__)
+
+
+class SafePasswordResetForm(PasswordResetForm):
+    def send_mail(self, *args, **kwargs):
+        try:
+            return super().send_mail(*args, **kwargs)
+        except Exception:
+            logger.warning('Password reset email delivery failed.')
 
 class RegistrationForm(forms.Form):
     username = forms.CharField(max_length=150)
@@ -164,3 +177,19 @@ class AuctionForm(forms.ModelForm):
             )
 
         return cleaned_data
+
+
+class AuctionReportForm(forms.ModelForm):
+    class Meta:
+        model = AuctionReport
+        fields = ['reason', 'description']
+        widgets = {
+            'reason': forms.Select(attrs={'class': 'form-select'}),
+            'description': forms.Textarea(attrs={
+                'class': 'form-control', 'rows': 4, 'maxlength': 1500,
+                'placeholder': 'Share any helpful details (optional).',
+            }),
+        }
+
+    def clean_description(self):
+        return self.cleaned_data.get('description', '').strip()

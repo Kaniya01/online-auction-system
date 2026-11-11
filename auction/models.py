@@ -232,6 +232,7 @@ class Notification(models.Model):
         ('WINNER', 'Winner'),
         ('PAYMENT', 'Payment'),
         ('AUCTION_CANCELLED', 'Auction Cancelled'),
+        ('AUCTION_CLOSED', 'Auction Closed'),
     ]
 
     user = models.ForeignKey(
@@ -247,6 +248,60 @@ class Notification(models.Model):
     )
     is_read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+    event_key = models.CharField(max_length=120, blank=True)
+    link_url = models.CharField(max_length=300, blank=True)
 
     def __str__(self):
         return f"{self.user.username} - {self.title}"
+
+    class Meta:
+        indexes = [models.Index(fields=['user', 'is_read', '-created_at'], name='notif_user_read_date_idx')]
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'event_key'],
+                condition=~models.Q(event_key=''),
+                name='unique_notification_event_per_user',
+            ),
+        ]
+
+
+class AuctionReport(models.Model):
+    REASON_CHOICES = [
+        ('MISLEADING', 'Misleading description'),
+        ('SUSPICIOUS', 'Suspicious listing'),
+        ('INAPPROPRIATE', 'Inappropriate content'),
+        ('INCORRECT', 'Incorrect product information'),
+        ('FRAUD', 'Suspected fraud'),
+        ('OTHER', 'Other'),
+    ]
+    STATUS_CHOICES = [('OPEN', 'Open'), ('REVIEWED', 'Reviewed'), ('DISMISSED', 'Dismissed')]
+
+    auction = models.ForeignKey(Auction, on_delete=models.PROTECT, related_name='reports')
+    reporter = models.ForeignKey(User, on_delete=models.CASCADE, related_name='auction_reports')
+    reason = models.CharField(max_length=20, choices=REASON_CHOICES)
+    description = models.TextField(blank=True, max_length=1500)
+    status = models.CharField(max_length=12, choices=STATUS_CHOICES, default='OPEN')
+    created_at = models.DateTimeField(auto_now_add=True)
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        constraints = [models.UniqueConstraint(fields=['auction', 'reporter'], name='unique_reporter_auction')]
+        indexes = [models.Index(fields=['status', '-created_at'], name='report_status_date_idx')]
+
+    def __str__(self):
+        return f'{self.get_reason_display()} report for {self.auction}'
+
+
+class RecentlyViewedAuction(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='recently_viewed_auctions')
+    auction = models.ForeignKey(Auction, on_delete=models.CASCADE, related_name='recently_viewed_by')
+    last_viewed = models.DateTimeField(auto_now=True, db_index=True)
+
+    class Meta:
+        ordering = ['-last_viewed']
+        constraints = [models.UniqueConstraint(fields=['user', 'auction'], name='unique_user_recent_auction')]
+        indexes = [models.Index(fields=['user', '-last_viewed'], name='recent_user_viewed_idx')]
+
+    def __str__(self):
+        return f'{self.user.username} viewed {self.auction}'

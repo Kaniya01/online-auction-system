@@ -3,11 +3,12 @@
 {% block title %}Notifications | AuctionHub{% endblock %}
 {% block page_title %}Notifications{% endblock %}
 {% block extra_head %}
-<style>
+    <style>
         body { background: #f5f7fb; color: #202b3c; }
         .page { max-width: 900px; margin: 48px auto; }
         .notice { background: white; border: 1px solid #e6eaf0; border-radius: 12px; padding: 20px; }
         .notice.unread { border-left: 4px solid #2155d9; }
+        .notice a:focus-visible, .notice button:focus-visible { outline: 3px solid #2155d9; outline-offset: 2px; }
     </style>
 {% endblock %}
 {% block content %}
@@ -30,6 +31,7 @@
                 <div>
                     <h2 class="h6 mb-1">{{ item.title }}</h2>
                     <p class="mb-2">{{ item.message }}</p>
+                    {% if item.link_url %}<a class="btn btn-sm btn-link px-0" href="{{ item.link_url }}">View related auction <span aria-hidden="true">→</span></a>{% endif %}
                     <small class="text-secondary">{{ item.created_at|date:"d M Y, h:i A" }}</small>
                 </div>
                 {% if not item.is_read %}
@@ -48,5 +50,14 @@
             <p class="text-secondary mb-0">New auction updates will appear here.</p>
         </div>
     {% endfor %}
+    {% if notifications.paginator.num_pages > 1 %}
+        <nav aria-label="Notification pages" class="d-flex align-items-center justify-content-between mt-4">
+            <span class="text-secondary">Page {{ notifications.number }} of {{ notifications.paginator.num_pages }}</span>
+            <div class="btn-group">
+                {% if notifications.has_previous %}<a class="btn btn-outline-primary" href="?page={{ notifications.previous_page_number }}" aria-label="Previous page">Previous</a>{% endif %}
+                {% if notifications.has_next %}<a class="btn btn-outline-primary" href="?page={{ notifications.next_page_number }}" aria-label="Next page">Next</a>{% endif %}
+            </div>
+        </nav>
+    {% endif %}
 </main>
 {% endblock %}

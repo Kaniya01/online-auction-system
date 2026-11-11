@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.urls import path
+from django.contrib.auth import views as auth_views
 from django.conf import settings
 from django.conf.urls.static import static
 
@@ -29,6 +30,16 @@ urlpatterns = [
     path('register/', views.register, name='register'),
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
+    path('password-reset/', views.SafePasswordResetView.as_view(), name='password_reset'),
+    path('password-reset/done/', auth_views.PasswordResetDoneView.as_view(template_name='registration/password_reset_done.html'), name='password_reset_done'),
+    path('password-reset/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(template_name='registration/password_reset_confirm.html', success_url='/password-reset/complete/'), name='password_reset_confirm'),
+    path('password-reset/complete/', auth_views.PasswordResetCompleteView.as_view(template_name='registration/password_reset_complete.html'), name='password_reset_complete'),
+    path('password-change/', views.SafePasswordChangeView.as_view(), name='password_change'),
+    path('password-change/done/', auth_views.PasswordChangeDoneView.as_view(template_name='registration/password_change_done.html'), name='password_change_done'),
+    path('help/', views.help_faq, name='help_faq'),
+    path('terms/', views.terms_and_conditions, name='terms'),
+    path('privacy/', views.privacy_policy, name='privacy'),
+    path('auction-rules/', views.auction_rules, name='auction_rules'),
     path('notifications/', views.notifications, name='notifications'),
     path(
         'notifications/<int:notification_id>/read/',
@@ -79,6 +90,7 @@ urlpatterns = [
         browse_views.place_bid,
         name='place_bid'
     ),
+    path('auction/<int:auction_id>/report/', browse_views.report_auction, name='report_auction'),
 
     path(
         'my-bids/',
@@ -86,6 +98,7 @@ urlpatterns = [
         name='my_bids'
     ),
     path('my-watchlist/', browse_views.my_watchlist, name='my_watchlist'),
+    path('recently-viewed/', browse_views.recently_viewed, name='recently_viewed'),
     path(
         'auction/<int:auction_id>/watchlist/add/',
         browse_views.add_to_watchlist,

@@ -5,11 +5,13 @@ from django.contrib.auth.models import User
 from django.core.management import call_command
 from django.db import IntegrityError, transaction
 from django.test import TestCase
+from django.test import override_settings
+from django.core import mail
 from django.urls import reverse
 from django.utils import timezone
 
 from .browse_views import update_auction_status
-from .models import Auction, Bid, Notification, Product, Profile, Watchlist
+from .models import Auction, AuctionReport, Bid, Notification, Product, Profile, Watchlist, RecentlyViewedAuction
 
 
 class AuctionFlowTests(TestCase):
@@ -753,3 +755,183 @@ class AuctionScheduleCommandTests(TestCase):
             user=winner,
             notification_type='WINNER',
         ).exists())
+
+
+class PhaseFourPasswordTests(TestCase):
+    @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+    def test_password_reset_email_token_completes_reset(self):
+        user = User.objects.create_user('reset-user', email='reset@example.test', password='Initial!Password-948')
+        response = self.client.post(reverse('password_reset'), {'email': user.email})
+        self.assertRedirects(response, reverse('password_reset_done'))
+        self.assertEqual(len(mail.outbox), 1)
+        reset_url = next(line.strip() for line in mail.outbox[0].body.splitlines() if '/password-reset/' in line and 'http' in line)
+        path = __import__('urllib.parse', fromlist=['urlsplit']).urlsplit(reset_url).path
+        response = self.client.get(path, follow=True)
+        self.assertEqual(response.status_code, 200)
+        reset_confirm_path = response.request['PATH_INFO']
+        response = self.client.post(reset_confirm_path, {
+            'new_password1': 'Cobalt!Wren-94-Harbor',
+            'new_password2': 'Cobalt!Wren-94-Harbor',
+        })
+        self.assertRedirects(response, reverse('password_reset_complete'))
+        user.refresh_from_db()
+        self.assertTrue(user.check_password('Cobalt!Wren-94-Harbor'))
+
+    def test_password_change_requires_login_and_validates_password(self):
+        url = reverse('password_change')
+        self.assertRedirects(self.client.get(url), f'{reverse("login")}?next={url}')
+        user = User.objects.create_user('change-user', password='Initial!Password-948')
+        self.client.force_login(user)
+        response = self.client.post(url, {
+            'old_password': 'Initial!Password-948',
+            'new_password1': 'Cobalt!Wren-94-Harbor',
+            'new_password2': 'Cobalt!Wren-94-Harbor',
+        })
+        self.assertRedirects(response, reverse('password_change_done'))
+        user.refresh_from_db()
+        self.assertTrue(user.check_password('Cobalt!Wren-94-Harbor'))
+
+    @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+    def test_reset_request_response_does_not_reveal_unknown_email(self):
+        response = self.client.post(reverse('password_reset'), {'email': 'missing@example.test'})
+        self.assertRedirects(response, reverse('password_reset_done'))
+        self.assertEqual(len(mail.outbox), 0)
+
+
+class PhaseFourNotificationTests(TestCase):
+    def test_notifications_are_paginated_and_private(self):
+        user = User.objects.create_user('page-reader')
+        other = User.objects.create_user('private-reader')
+        for i in range(25):
+            Notification.objects.create(user=user, title=f'Notice {i}', message='Visible', notification_type='BID')
+        Notification.objects.create(user=other, title='Private notice', message='Secret', notification_type='BID')
+        self.client.force_login(user)
+        first = self.client.get(reverse('notifications'))
+        self.assertEqual(first.context['notifications'].paginator.count, 25)
+        self.assertEqual(len(first.context['notifications']), 20)
+        second = self.client.get(reverse('notifications'), {'page': 2})
+        self.assertEqual(len(second.context['notifications']), 5)
+        self.assertNotContains(first, 'Private notice')
+
+
+class PhaseFourGeneralFeatureTests(TestCase):
+    def setUp(self):
+        self.seller = User.objects.create_user('phase4-seller', email='seller@example.test')
+        self.buyer = User.objects.create_user('phase4-buyer', email='buyer@example.test')
+        self.other = User.objects.create_user('phase4-other')
+        self.product = Product.objects.create(
+            seller=self.seller, name='Reportable clock', category='Home',
+            description='An auction listing', condition='GOOD', starting_price=Decimal('20.00'),
+        )
+        self.auction = Auction.objects.create(
+            product=self.product, start_time=timezone.now() - timedelta(minutes=10),
+            end_time=timezone.now() + timedelta(hours=3), starting_bid=Decimal('20.00'),
+            current_highest_bid=Decimal('20.00'), status='ACTIVE',
+        )
+        self.client.force_login(self.buyer)
+
+    def test_help_and_policy_pages_are_searchable_and_accessible(self):
+        help_page = self.client.get(reverse('help_faq'), {'q': 'watchlist'})
+        self.assertContains(help_page, 'How do I save an auction?')
+        self.assertNotContains(help_page, 'How do bids work?')
+        for name in ('terms', 'privacy', 'auction_rules'):
+            self.assertEqual(self.client.get(reverse(name)).status_code, 200)
+        self.assertContains(self.client.get(reverse('terms')), 'Draft policy')
+
+    def test_buyer_can_report_once_and_staff_can_review(self):
+        url = reverse('report_auction', args=[self.auction.pk])
+        response = self.client.post(url, {'reason': 'SUSPICIOUS', 'description': 'Details here'})
+        self.assertRedirects(response, reverse('auction_detail', args=[self.auction.pk]))
+        self.assertEqual(AuctionReport.objects.filter(auction=self.auction, reporter=self.buyer).count(), 1)
+        self.client.post(url, {'reason': 'FRAUD', 'description': 'duplicate'})
+        self.assertEqual(AuctionReport.objects.count(), 1)
+        staff = User.objects.create_superuser('phase4-admin', 'admin@example.test', 'Admin!Pass-948')
+        self.client.force_login(staff)
+        admin_url = reverse('admin:auction_auctionreport_changelist')
+        self.assertEqual(self.client.get(admin_url).status_code, 200)
+
+    def test_report_requires_login_and_valid_reason_and_existing_auction(self):
+        url = reverse('report_auction', args=[self.auction.pk])
+        self.client.logout()
+        self.assertRedirects(self.client.post(url, {'reason': 'BAD'}), f'{reverse("login")}?next={url}')
+        self.client.force_login(self.buyer)
+        invalid = self.client.post(url, {'reason': 'BAD', 'description': 'x' * 1501})
+        self.assertEqual(invalid.status_code, 200)
+        self.assertEqual(AuctionReport.objects.count(), 0)
+        missing = self.client.get(reverse('report_auction', args=[999999]))
+        self.assertEqual(missing.status_code, 404)
+
+    def test_seller_and_unauthorized_user_cannot_report_own_listing(self):
+        self.client.force_login(self.seller)
+        own_product = Product.objects.create(
+            seller=self.seller, name='Seller own listing', category='Home',
+            description='Own', condition='GOOD', starting_price=Decimal('10.00'),
+        )
+        own_auction = Auction.objects.create(
+            product=own_product, start_time=timezone.now() - timedelta(minutes=5),
+            end_time=timezone.now() + timedelta(hours=1), starting_bid=Decimal('10.00'), status='ACTIVE',
+        )
+        response = self.client.get(reverse('report_auction', args=[own_auction.pk]))
+        self.assertEqual(response.status_code, 403)
+
+    def test_recent_views_are_deduplicated_limited_and_private(self):
+        detail_url = reverse('auction_detail', args=[self.auction.pk])
+        self.client.get(detail_url)
+        first = RecentlyViewedAuction.objects.get(user=self.buyer, auction=self.auction)
+        first_time = first.last_viewed
+        self.client.get(detail_url)
+        self.assertEqual(RecentlyViewedAuction.objects.filter(user=self.buyer, auction=self.auction).count(), 1)
+        first.refresh_from_db()
+        self.assertGreaterEqual(first.last_viewed, first_time)
+        self.assertEqual(self.client.get(reverse('recently_viewed')).status_code, 200)
+        self.client.force_login(self.other)
+        self.assertNotContains(self.client.get(reverse('recently_viewed')), self.product.name)
+
+    def test_recent_views_keep_only_twenty_most_recent_records(self):
+        for index in range(21):
+            product = Product.objects.create(
+                seller=self.seller, name=f'Recent {index}', category='Home',
+                description='Recent test item', condition='GOOD', starting_price=Decimal('10.00'),
+            )
+            auction = Auction.objects.create(
+                product=product, start_time=timezone.now() - timedelta(minutes=5),
+                end_time=timezone.now() + timedelta(hours=2), starting_bid=Decimal('10.00'), status='ACTIVE',
+            )
+            RecentlyViewedAuction.objects.create(user=self.buyer, auction=auction)
+        self.client.get(reverse('auction_detail', args=[self.auction.pk]))
+        self.assertEqual(RecentlyViewedAuction.objects.filter(user=self.buyer).count(), 20)
+
+    @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+    def test_bid_events_email_seller_and_email_failure_does_not_break_bid(self):
+        from unittest.mock import patch
+        from django.core import mail
+        with self.captureOnCommitCallbacks(execute=True):
+            self.client.post(reverse('place_bid', args=[self.auction.pk]), {'amount': '25.00'})
+        self.assertTrue(mail.outbox)
+        self.assertEqual(mail.outbox[0].to, [self.seller.email])
+        self.auction.refresh_from_db()
+        self.auction.current_highest_bid = Decimal('25.00')
+        self.auction.highest_bidder = self.buyer
+        self.auction.save(update_fields=['current_highest_bid', 'highest_bidder'])
+        with patch('auction.notifications.send_mail', side_effect=RuntimeError('mail unavailable')):
+            self.client.force_login(self.other)
+            with self.captureOnCommitCallbacks(execute=True):
+                response = self.client.post(reverse('place_bid', args=[self.auction.pk]), {'amount': '30.00'})
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(Bid.objects.filter(auction=self.auction, amount=Decimal('30.00')).exists())
+
+    @override_settings(EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+    def test_duplicate_event_key_does_not_duplicate_notice_or_email(self):
+        from auction.notifications import notify_user
+        with self.captureOnCommitCallbacks(execute=True):
+            first, created_first = notify_user(
+                self.buyer, title='One event', message='Details', notification_type='BID', event_key='dedupe-test',
+            )
+            second, created_second = notify_user(
+                self.buyer, title='One event', message='Details', notification_type='BID', event_key='dedupe-test',
+            )
+        self.assertTrue(created_first)
+        self.assertFalse(created_second)
+        self.assertEqual(first.pk, second.pk)
+        self.assertEqual(Notification.objects.filter(user=self.buyer, event_key='dedupe-test').count(), 1)
+        self.assertEqual(len(mail.outbox), 1)

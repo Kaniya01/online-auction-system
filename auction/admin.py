@@ -8,6 +8,8 @@ from .models import (
     Payment,
     Notification,
     Watchlist,
+    AuctionReport,
+    RecentlyViewedAuction,
 )
 
 
@@ -100,10 +102,49 @@ class NotificationAdmin(admin.ModelAdmin):
     )
     list_filter = ('notification_type', 'is_read')
     search_fields = ('user__username', 'title', 'message')
+    readonly_fields = ('created_at',)
 
 
 @admin.register(Watchlist)
 class WatchlistAdmin(admin.ModelAdmin):
     list_display = ('user', 'auction', 'created_at')
     search_fields = ('user__username', 'auction__product__name')
+    list_select_related = ('user', 'auction', 'auction__product')
+
+
+@admin.register(AuctionReport)
+class AuctionReportAdmin(admin.ModelAdmin):
+    list_display = ('auction', 'reporter', 'reason', 'status', 'created_at', 'reviewed_at')
+    list_filter = ('status', 'reason', 'created_at')
+    search_fields = ('auction__product__name', 'reporter__username', 'description')
+    list_select_related = ('auction__product', 'reporter')
+    readonly_fields = ('auction', 'reporter', 'reason', 'description', 'created_at')
+    actions = ('mark_reviewed', 'dismiss_reports')
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def save_model(self, request, obj, form, change):
+        if obj.status != 'OPEN' and obj.reviewed_at is None:
+            from django.utils import timezone
+            obj.reviewed_at = timezone.now()
+        super().save_model(request, obj, form, change)
+
+    @admin.action(description='Mark selected reports as reviewed')
+    def mark_reviewed(self, request, queryset):
+        from django.utils import timezone
+        queryset.update(status='REVIEWED', reviewed_at=timezone.now())
+
+    @admin.action(description='Dismiss selected reports')
+    def dismiss_reports(self, request, queryset):
+        from django.utils import timezone
+        queryset.update(status='DISMISSED', reviewed_at=timezone.now())
+
+
+@admin.register(RecentlyViewedAuction)
+class RecentlyViewedAuctionAdmin(admin.ModelAdmin):
+    list_display = ('user', 'auction', 'last_viewed')
     list_select_related = ('user', 'auction', 'auction__product')

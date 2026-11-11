@@ -1,6 +1,8 @@
-from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth import get_user_model
+from django.contrib.auth.views import PasswordChangeView, PasswordResetView
+from django.contrib import messages
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator
 from django.db import transaction
@@ -8,12 +10,13 @@ from django.db.models import Avg, Count, Max, OuterRef, Prefetch, Subquery, Sum
 from django.db.models.functions import TruncDate
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse
+from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 
-from .forms import RegistrationForm, ProfileForm, ProductForm, AuctionForm
+from .forms import RegistrationForm, ProfileForm, ProductForm, AuctionForm, SafePasswordResetForm
 from .models import Profile, Product, Auction, ProductImage, Bid, Notification
 from .browse_views import update_auction_status
+from .notifications import notify_user
 
 
 # =========================================================
@@ -249,7 +252,29 @@ def dashboard(request):
 @login_required
 def notifications(request):
     items = Notification.objects.filter(user=request.user).order_by('-created_at')
-    return render(request, 'notifications.html', {'notifications': items})
+    page = Paginator(items, 20).get_page(request.GET.get('page'))
+    return render(request, 'notifications.html', {'notifications': page})
+
+
+class SafePasswordResetView(PasswordResetView):
+    form_class = SafePasswordResetForm
+    template_name = 'registration/password_reset_form.html'
+    email_template_name = 'registration/password_reset_email.txt'
+    subject_template_name = 'registration/password_reset_subject.txt'
+    success_url = reverse_lazy('password_reset_done')
+
+    def form_valid(self, form):
+        messages.success(self.request, 'If an account matches that email, password reset instructions have been sent.')
+        return super().form_valid(form)
+
+
+class SafePasswordChangeView(PasswordChangeView):
+    template_name = 'registration/password_change_form.html'
+    success_url = reverse_lazy('password_change_done')
+
+    def form_valid(self, form):
+        messages.success(self.request, 'Your password has been changed.')
+        return super().form_valid(form)
 
 
 @login_required
@@ -531,18 +556,19 @@ def cancel_auction(request, auction_id):
             messages.error(request, 'This auction is no longer eligible for cancellation.')
             return redirect('seller_auctions')
 
-        bidder_ids = auction.bids.order_by().values_list('buyer_id', flat=True).distinct()
+        bidder_ids = list(auction.bids.order_by().values_list('buyer_id', flat=True).distinct())
         auction.status = 'CANCELLED'
         auction.save(update_fields=['status'])
-        Notification.objects.bulk_create([
-            Notification(
-                user_id=bidder_id,
+        bidders = get_user_model().objects.filter(pk__in=bidder_ids)
+        for bidder in bidders:
+            notify_user(
+                bidder,
                 title=f'Auction cancelled: {auction.product.name}',
                 message=f'The seller cancelled the auction for {auction.product.name}. Existing bids remain in the auction history.',
                 notification_type='AUCTION_CANCELLED',
+                event_key=f'auction-cancelled-{auction.pk}-{bidder.pk}',
+                link_url=reverse('auction_detail', args=[auction.pk]),
             )
-            for bidder_id in bidder_ids
-        ])
 
     messages.success(request, 'Auction cancelled. Bids and history have been preserved, and bidders have been notified.')
     return redirect('seller_auctions')
@@ -574,6 +600,44 @@ def logout_view(request):
         extra_tags='logout',
     )
     return redirect('login')
+
+
+FAQ_ITEMS = [
+    {'category': 'Buyer guide', 'question': 'How do I browse auctions?', 'answer': 'Open Browse Auctions, use search or category filters, then open a listing for its current status and bid history.'},
+    {'category': 'Buyer guide', 'question': 'How do I save an auction?', 'answer': 'Use the watchlist control on an eligible scheduled or active auction. Saved auctions remain visible after they end.'},
+    {'category': 'Placing bids', 'question': 'How do bids work?', 'answer': 'A bid must be greater than the current highest bid, use no more than two decimal places, and be placed while the auction is active. Bids cannot be withdrawn through the site.'},
+    {'category': 'Creating auctions', 'question': 'How do I create an auction?', 'answer': 'Switch to Seller mode, add a product, and create a future auction schedule for that product. Archived products cannot be listed.'},
+    {'category': 'Seller guide', 'question': 'Can I manage products after listing?', 'answer': 'Unused products can be deleted. Products with auction history are archived so their listing and bid history are preserved.'},
+    {'category': 'Auction closing and winners', 'question': 'What happens when an auction closes?', 'answer': 'The highest valid bid at closing is recorded as the winner. Cancelled auctions remain distinct and do not have winners.'},
+    {'category': 'Auction closing and winners', 'question': 'Is a winning bid a completed payment?', 'answer': 'No. The application has no active payment gateway; a winning bid value is not proof that money was paid.'},
+    {'category': 'Account and security', 'question': 'How do I reset my password?', 'answer': 'Use Forgot password on the login page. A time-limited link is sent to the email address on your account.'},
+    {'category': 'General platform questions', 'question': 'How do I report a suspicious listing?', 'answer': 'Open the auction and submit one report with a reason and optional details. Authorized staff review reports in the admin area.'},
+]
+
+
+def help_faq(request):
+    query = request.GET.get('q', '').strip()
+    category = request.GET.get('category', '').strip()
+    items = FAQ_ITEMS
+    if category:
+        items = [item for item in items if item['category'] == category]
+    if query:
+        needle = query.casefold()
+        items = [item for item in items if needle in item['question'].casefold() or needle in item['answer'].casefold()]
+    categories = sorted({item['category'] for item in FAQ_ITEMS})
+    return render(request, 'help_faq.html', {'faqs': items, 'categories': categories, 'query': query, 'selected_category': category})
+
+
+def terms_and_conditions(request):
+    return render(request, 'terms.html')
+
+
+def privacy_policy(request):
+    return render(request, 'privacy.html')
+
+
+def auction_rules(request):
+    return render(request, 'auction_rules.html')
 
 
 # =========================================================
