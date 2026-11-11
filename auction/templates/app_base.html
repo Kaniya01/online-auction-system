@@ -47,7 +47,7 @@
                         <li><a class="dropdown-item" href="{% url 'help_faq' %}"><i class="bi bi-question-circle me-2"></i>Help &amp; FAQ</a></li>
                         <li><a class="dropdown-item" href="{% url 'switch_mode' 'BUYER' %}"><i class="bi bi-cart3 me-2"></i>Buyer mode</a></li>
                         <li><a class="dropdown-item" href="{% url 'switch_mode' 'SELLER' %}"><i class="bi bi-shop me-2"></i>Seller mode</a></li>
-                        {% if request.user.is_staff or request.user.is_superuser %}<li><a class="dropdown-item" href="{% url 'admin:index' %}"><i class="bi bi-shield-lock me-2"></i>Administration</a></li>{% endif %}
+                        {% if request.user.is_staff or request.user.is_superuser %}<li><a class="dropdown-item" href="{% url 'staff_admin_dashboard' %}"><i class="bi bi-shield-lock me-2"></i>Administration</a></li>{% endif %}
                         <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item text-danger" href="{% url 'logout' %}"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
                     </ul>

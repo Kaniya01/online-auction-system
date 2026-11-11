@@ -6,6 +6,8 @@ from django.conf.urls.static import static
 
 from auction import views
 from auction import browse_views
+from auction import admin_views
+from auction import payment_views
 
 
 urlpatterns = [
@@ -40,6 +42,26 @@ urlpatterns = [
     path('terms/', views.terms_and_conditions, name='terms'),
     path('privacy/', views.privacy_policy, name='privacy'),
     path('auction-rules/', views.auction_rules, name='auction_rules'),
+    path('my-payments/', payment_views.my_payments, name='my_payments'),
+    path('payments/<int:auction_id>/', payment_views.payment_detail, name='payment_detail'),
+    path('payments/<int:auction_id>/initiate/', payment_views.initiate_payment, name='initiate_payment'),
+    path('payments/verify/<int:auction_id>/', payment_views.verify_checkout, name='verify_checkout'),
+    path('payments/razorpay/webhook/', payment_views.razorpay_webhook, name='razorpay_webhook'),
+    path('admin-console/', admin_views.dashboard, name='staff_admin_dashboard'),
+    path('admin-console/users/', admin_views.user_list, name='staff_admin_user_list'),
+    path('admin-console/users/<int:user_id>/', admin_views.user_detail, name='staff_admin_user_detail'),
+    path('admin-console/users/<int:user_id>/status/', admin_views.set_user_active, name='staff_admin_set_user_active'),
+    path('admin-console/products/', admin_views.product_list, name='staff_admin_product_list'),
+    path('admin-console/products/<int:product_id>/', admin_views.product_detail, name='staff_admin_product_detail'),
+    path('admin-console/products/<int:product_id>/archive/', admin_views.toggle_product_archive, name='staff_admin_toggle_product_archive'),
+    path('admin-console/auctions/', admin_views.auction_list, name='staff_admin_auction_list'),
+    path('admin-console/auctions/<int:auction_id>/', admin_views.auction_detail, name='staff_admin_auction_detail'),
+    path('admin-console/auctions/<int:auction_id>/cancel/', admin_views.cancel_auction, name='staff_admin_cancel_auction'),
+    path('admin-console/reports/', admin_views.report_list, name='staff_admin_report_list'),
+    path('admin-console/reports/<int:report_id>/', admin_views.report_detail, name='staff_admin_report_detail'),
+    path('admin-console/reports/<int:report_id>/resolve/', admin_views.review_report, name='staff_admin_review_report'),
+    path('admin-console/platform-reports/', admin_views.platform_reports, name='staff_admin_platform_reports'),
+    path('admin-console/platform-analytics/', admin_views.platform_analytics, name='staff_admin_platform_analytics'),
     path('notifications/', views.notifications, name='notifications'),
     path(
         'notifications/<int:notification_id>/read/',

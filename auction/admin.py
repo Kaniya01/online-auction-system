@@ -6,6 +6,8 @@ from .models import (
     Auction,
     Bid,
     Payment,
+    PaymentAttempt,
+    PaymentWebhookEvent,
     Notification,
     Watchlist,
     AuctionReport,
@@ -88,7 +90,44 @@ class PaymentAdmin(admin.ModelAdmin):
     search_fields = (
         'buyer__username',
         'transaction_reference',
+        'razorpay_order_id',
+        'razorpay_payment_id',
     )
+    readonly_fields = tuple(field.name for field in Payment._meta.fields)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(PaymentAttempt)
+class PaymentAttemptAdmin(admin.ModelAdmin):
+    list_display = ('payment', 'attempt_number', 'status', 'razorpay_order_id', 'razorpay_payment_id', 'created_at')
+    list_filter = ('status',)
+    search_fields = ('razorpay_order_id', 'razorpay_payment_id', 'payment__buyer__username')
+    readonly_fields = tuple(field.name for field in PaymentAttempt._meta.fields)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(PaymentWebhookEvent)
+class PaymentWebhookEventAdmin(admin.ModelAdmin):
+    list_display = ('event_id', 'event_type', 'status', 'received_at', 'processed_at')
+    list_filter = ('status', 'event_type')
+    search_fields = ('event_id', 'event_type')
+    readonly_fields = tuple(field.name for field in PaymentWebhookEvent._meta.fields)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(Notification)
@@ -116,7 +155,7 @@ class WatchlistAdmin(admin.ModelAdmin):
 class AuctionReportAdmin(admin.ModelAdmin):
     list_display = ('auction', 'reporter', 'reason', 'status', 'created_at', 'reviewed_at')
     list_filter = ('status', 'reason', 'created_at')
-    search_fields = ('auction__product__name', 'reporter__username', 'description')
+    search_fields = ('auction__product__name', 'reporter__username', 'description', 'admin_note')
     list_select_related = ('auction__product', 'reporter')
     readonly_fields = ('auction', 'reporter', 'reason', 'description', 'created_at')
     actions = ('mark_reviewed', 'dismiss_reports')
@@ -128,7 +167,7 @@ class AuctionReportAdmin(admin.ModelAdmin):
         return False
 
     def save_model(self, request, obj, form, change):
-        if obj.status != 'OPEN' and obj.reviewed_at is None:
+        if obj.status != 'OPEN' and (obj.reviewed_at is None or 'status' in form.changed_data):
             from django.utils import timezone
             obj.reviewed_at = timezone.now()
         super().save_model(request, obj, form, change)

@@ -1,0 +1,78 @@
+{% extends 'app_base.html' %}
+{% block title %}Payment · {{ auction.product.name }} | AuctionHub{% endblock %}
+{% block page_title %}Auction payment{% endblock %}
+{% block content %}
+<main class="container py-3" style="max-width:900px">
+  <div class="card border-0 shadow-sm p-4">
+    <p class="text-primary fw-semibold mb-1">Winning auction payment</p>
+    <h1 class="h3">{{ auction.product.name }}</h1>
+    <p class="text-secondary">Winning bid: <strong>₹{{ winning_bid.amount|floatformat:2 }}</strong></p>
+    {% if payment and payment.payment_status == 'PAID' %}
+      <div class="alert alert-success" role="status">Paid · captured and verified</div>
+      <dl class="row"><dt class="col-sm-4">Transaction reference</dt><dd class="col-sm-8">{{ payment.razorpay_payment_id }}</dd><dt class="col-sm-4">Paid at</dt><dd class="col-sm-8">{{ payment.paid_at|date:'d M Y, H:i' }}</dd></dl>
+    {% elif payment and payment.payment_status == 'COMPLETED' %}
+      <div class="alert alert-warning" role="status">A legacy payment record exists, but it was not verified through Razorpay. Checkout is disabled pending staff review.</div>
+    {% else %}
+      <p id="payment-status" class="text-secondary" role="status" aria-live="polite">
+        {% if latest_attempt.status == 'AUTHORIZED' %}Payment is authorized but has not been captured yet. We will update this page when capture is confirmed.{% else %}
+        {% if payment.payment_status == 'PENDING' %}Payment is pending. You may resume checkout safely.{% elif payment.payment_status == 'FAILED' %}The previous attempt failed. You can retry checkout.{% else %}No payment has been captured for this auction.{% endif %}
+        {% endif %}
+      </p>
+      {% if payment_configured and latest_attempt.status != 'AUTHORIZED' %}
+        <form id="payment-form" data-init-url="{% url 'initiate_payment' auction.id %}" data-currency="{{ currency }}">{% csrf_token %}<button class="btn btn-primary" type="submit"><i class="bi bi-credit-card me-2" aria-hidden="true"></i>Pay Now</button></form>
+      {% else %}<div class="alert alert-info" role="status">Online payment is temporarily unavailable. Your auction result is unchanged.</div>{% endif %}
+    {% endif %}
+    <a class="btn btn-link px-0 mt-2" href="{% url 'my_payments' %}">Payment history</a>
+  </div>
+</main>
+{% endblock %}
+{% block extra_scripts %}
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+(() => {
+  const form = document.getElementById('payment-form');
+  if (!form) return;
+  const status = document.getElementById('payment-status');
+  const button = form.querySelector('button');
+  const csrf = form.querySelector('[name=csrfmiddlewaretoken]').value;
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    button.disabled = true;
+    status.textContent = 'Preparing secure checkout…';
+    try {
+      const response = await fetch(form.dataset.initUrl, {method: 'POST', headers: {'X-CSRFToken': csrf, 'Accept': 'application/json'}});
+      const checkout = await response.json();
+      if (!response.ok) throw new Error(checkout.error || 'Checkout could not be started.');
+      if (!window.Razorpay) throw new Error('Checkout could not load. Please try again.');
+      const instance = new Razorpay({
+        key: checkout.key,
+        order_id: checkout.order_id,
+        amount: checkout.amount,
+        currency: checkout.currency,
+        name: checkout.name,
+        description: checkout.description,
+        handler: async (result) => {
+          status.textContent = 'Verifying payment with Razorpay…';
+          const verified = await fetch(checkout.verify_url, {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf}, body: JSON.stringify(result)});
+          const outcome = await verified.json();
+          status.textContent = outcome.message || outcome.error || 'Payment status is being confirmed.';
+          if (verified.ok && outcome.status === 'PAID') window.location.reload();
+        },
+        modal: {ondismiss: () => {status.textContent = 'Checkout was closed. Your payment status has not been changed.'; button.disabled = false;}}
+      });
+      instance.on('payment.failed', async (failure) => {
+        const metadata = failure.error && failure.error.metadata ? failure.error.metadata : {};
+        const failedPayment = await fetch(checkout.verify_url, {method: 'POST', headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf}, body: JSON.stringify({failed: true, razorpay_order_id: metadata.order_id || checkout.order_id, razorpay_payment_id: metadata.payment_id || ''})});
+        const outcome = await failedPayment.json();
+        status.textContent = outcome.message || 'Payment attempt failed or is awaiting provider confirmation.';
+        button.disabled = false;
+      });
+      instance.open();
+    } catch (error) {
+      status.textContent = error.message;
+      button.disabled = false;
+    }
+  });
+})();
+</script>
+{% endblock %}

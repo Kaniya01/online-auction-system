@@ -181,7 +181,12 @@ class Payment(models.Model):
     ]
 
     PAYMENT_STATUS_CHOICES = [
+        ('UNPAID', 'Unpaid'),
         ('PENDING', 'Pending'),
+        ('FAILED', 'Failed'),
+        ('PAID', 'Paid'),
+        # Retained for legacy rows. These values are not proof of a
+        # Razorpay-verified capture.
         ('COMPLETED', 'Completed'),
         ('CANCELLED', 'Cancelled'),
     ]
@@ -203,23 +208,74 @@ class Payment(models.Model):
     )
     payment_method = models.CharField(
         max_length=20,
-        choices=PAYMENT_METHOD_CHOICES
+        choices=PAYMENT_METHOD_CHOICES + [('RAZORPAY', 'Razorpay')],
+        default='RAZORPAY',
     )
     payment_status = models.CharField(
         max_length=15,
         choices=PAYMENT_STATUS_CHOICES,
-        default='PENDING'
+        default='UNPAID'
     )
     transaction_reference = models.CharField(
         max_length=50,
-        unique=True
+        unique=True,
+        blank=True,
+        null=True,
     )
     payment_date = models.DateTimeField(
         auto_now_add=True
     )
+    razorpay_order_id = models.CharField(max_length=64, unique=True, null=True, blank=True)
+    razorpay_payment_id = models.CharField(max_length=64, unique=True, null=True, blank=True)
+    currency = models.CharField(max_length=3, default='INR')
+    paid_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return self.transaction_reference
+        return self.transaction_reference or f"Payment for auction {self.auction_id}"
+
+
+class PaymentAttempt(models.Model):
+    STATUS_CHOICES = [
+        ('CREATING', 'Creating order'),
+        ('PENDING', 'Pending'),
+        ('AUTHORIZED', 'Authorized, not captured'),
+        ('FAILED', 'Failed'),
+        ('CANCELLED', 'Cancelled'),
+        ('CAPTURED', 'Captured'),
+    ]
+    payment = models.ForeignKey(Payment, on_delete=models.CASCADE, related_name='attempts')
+    attempt_number = models.PositiveIntegerField()
+    status = models.CharField(max_length=16, choices=STATUS_CHOICES, default='CREATING')
+    razorpay_order_id = models.CharField(max_length=64, null=True, blank=True)
+    razorpay_payment_id = models.CharField(max_length=64, unique=True, null=True, blank=True)
+    failure_code = models.CharField(max_length=100, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-attempt_number']
+        constraints = [models.UniqueConstraint(fields=['payment', 'attempt_number'], name='unique_payment_attempt_number')]
+
+    def __str__(self):
+        return f"{self.payment_id} attempt {self.attempt_number} ({self.status})"
+
+
+class PaymentWebhookEvent(models.Model):
+    STATUS_CHOICES = [('RECEIVED', 'Received'), ('PROCESSING', 'Processing'), ('PROCESSED', 'Processed'), ('FAILED', 'Failed')]
+    event_id = models.CharField(max_length=128, unique=True)
+    event_type = models.CharField(max_length=80)
+    status = models.CharField(max_length=12, choices=STATUS_CHOICES, default='RECEIVED')
+    attempt = models.ForeignKey(PaymentAttempt, on_delete=models.SET_NULL, null=True, blank=True, related_name='webhook_events')
+    received_at = models.DateTimeField(auto_now_add=True)
+    processed_at = models.DateTimeField(null=True, blank=True)
+    error_message = models.CharField(max_length=240, blank=True)
+
+    class Meta:
+        ordering = ['-received_at']
+
+    def __str__(self):
+        return f"{self.event_type} ({self.event_id})"
 
 
 class Notification(models.Model):
@@ -280,6 +336,7 @@ class AuctionReport(models.Model):
     reporter = models.ForeignKey(User, on_delete=models.CASCADE, related_name='auction_reports')
     reason = models.CharField(max_length=20, choices=REASON_CHOICES)
     description = models.TextField(blank=True, max_length=1500)
+    admin_note = models.TextField(blank=True, max_length=2000)
     status = models.CharField(max_length=12, choices=STATUS_CHOICES, default='OPEN')
     created_at = models.DateTimeField(auto_now_add=True)
     reviewed_at = models.DateTimeField(null=True, blank=True)

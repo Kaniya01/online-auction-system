@@ -14,8 +14,10 @@ class SafePasswordResetForm(PasswordResetForm):
     def send_mail(self, *args, **kwargs):
         try:
             return super().send_mail(*args, **kwargs)
-        except Exception:
-            logger.warning('Password reset email delivery failed.')
+        except Exception as exc:
+            # Keep reset responses non-enumerating, but make delivery failures
+            # visible to operators without logging addresses or credentials.
+            logger.error('Password reset email delivery failed (%s).', type(exc).__name__)
 
 class RegistrationForm(forms.Form):
     username = forms.CharField(max_length=150)

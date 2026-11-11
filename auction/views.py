@@ -6,7 +6,7 @@ from django.contrib import messages
 from django.contrib.auth.models import User
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.db.models import Avg, Count, Max, OuterRef, Prefetch, Subquery, Sum
+from django.db.models import Avg, Count, Exists, Max, OuterRef, Prefetch, Subquery, Sum
 from django.db.models.functions import TruncDate
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.shortcuts import get_object_or_404, redirect, render
@@ -14,7 +14,7 @@ from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 
 from .forms import RegistrationForm, ProfileForm, ProductForm, AuctionForm, SafePasswordResetForm
-from .models import Profile, Product, Auction, ProductImage, Bid, Notification
+from .models import Profile, Product, Auction, ProductImage, Bid, Notification, Payment, PaymentAttempt
 from .browse_views import update_auction_status
 from .notifications import notify_user
 
@@ -192,6 +192,11 @@ def dashboard(request):
             and auction.highest_bidder_id == user.id
         )
     ]
+    payment_records = Payment.objects.filter(
+        auction_id__in=[auction.pk for auction in won_auctions]
+    ).in_bulk(field_name='auction_id')
+    for auction in won_auctions:
+        auction.payment_record = payment_records.get(auction.pk)
 
     # -----------------------------------------------------
     # AUCTIONS ENDING SOON
@@ -304,15 +309,30 @@ def mark_all_notifications_read(request):
 
 @login_required
 def seller_auctions(request):
+    bid_exists = Bid.objects.filter(auction_id=OuterRef('pk'))
+    payment_exists = Payment.objects.filter(auction_id=OuterRef('pk'))
+    attempt_exists = PaymentAttempt.objects.filter(payment__auction_id=OuterRef('pk'))
     auctions = Auction.objects.filter(
         product__seller=request.user
     ).select_related(
         'product'
+    ).annotate(
+        has_bids=Exists(bid_exists),
+        has_payment=Exists(payment_exists),
+        has_payment_attempts=Exists(attempt_exists),
     ).order_by('-created_at')
 
     # Refresh open auctions without changing cancelled/completed history.
     for auction in auctions:
         update_auction_status(auction)
+        auction.can_edit_schedule = (
+            auction.status == 'SCHEDULED'
+            and auction.start_time > timezone.now()
+            and auction.end_time > timezone.now()
+            and not auction.has_bids
+            and not auction.has_payment
+            and not auction.has_payment_attempts
+        )
 
     selected_status = request.GET.get('status', '').upper()
     valid_statuses = {key for key, _ in Auction.STATUS_CHOICES}
@@ -409,9 +429,23 @@ def seller_winners(request):
     ).order_by('-end_time')
 
     winner_rows = []
+    payment_records = Payment.objects.filter(
+        auction_id__in=[auction.pk for auction in auctions]
+    ).in_bulk(field_name='auction_id')
     for auction in auctions:
         winning_bid = auction.ranked_bids[0] if auction.ranked_bids else None
-        winner_rows.append({'auction': auction, 'winning_bid': winning_bid})
+        payment = payment_records.get(auction.pk)
+        if payment and payment.payment_status == 'PAID':
+            payment_label = 'Paid'
+        elif payment and payment.payment_status == 'PENDING':
+            payment_label = 'Pending'
+        elif payment and payment.payment_status == 'FAILED':
+            payment_label = 'Failed'
+        elif payment and payment.payment_status == 'COMPLETED':
+            payment_label = 'Legacy record · unverified'
+        else:
+            payment_label = 'Unpaid'
+        winner_rows.append({'auction': auction, 'winning_bid': winning_bid, 'payment_label': payment_label})
 
     return render(request, 'seller_winners.html', {'winner_rows': winner_rows})
 
@@ -609,7 +643,7 @@ FAQ_ITEMS = [
     {'category': 'Creating auctions', 'question': 'How do I create an auction?', 'answer': 'Switch to Seller mode, add a product, and create a future auction schedule for that product. Archived products cannot be listed.'},
     {'category': 'Seller guide', 'question': 'Can I manage products after listing?', 'answer': 'Unused products can be deleted. Products with auction history are archived so their listing and bid history are preserved.'},
     {'category': 'Auction closing and winners', 'question': 'What happens when an auction closes?', 'answer': 'The highest valid bid at closing is recorded as the winner. Cancelled auctions remain distinct and do not have winners.'},
-    {'category': 'Auction closing and winners', 'question': 'Is a winning bid a completed payment?', 'answer': 'No. The application has no active payment gateway; a winning bid value is not proof that money was paid.'},
+    {'category': 'Auction closing and winners', 'question': 'How do I pay for an auction I won?', 'answer': 'The recorded winning bidder can open Payment details from the dashboard and use Razorpay Checkout when payment configuration is available. A payment is shown as paid only after server verification confirms capture; an authorized payment is not yet captured.'},
     {'category': 'Account and security', 'question': 'How do I reset my password?', 'answer': 'Use Forgot password on the login page. A time-limited link is sent to the email address on your account.'},
     {'category': 'General platform questions', 'question': 'How do I report a suspicious listing?', 'answer': 'Open the auction and submit one report with a reason and optional details. Authorized staff review reports in the admin area.'},
 ]
@@ -856,48 +890,61 @@ def create_auction(request, product_id):
 
 @login_required
 def edit_auction(request, auction_id):
-    auction = get_object_or_404(
-        Auction,
-        id=auction_id,
-        product__seller=request.user
-    )
-
-    # Auctions cannot be edited after their start time.
-    if timezone.now() >= auction.start_time:
-        messages.error(
-            request,
-            'This auction has already started and cannot be edited.'
-        )
-        return redirect('seller_auctions')
-
-    if auction.status in ['ACTIVE', 'CLOSED', 'COMPLETED']:
-        messages.error(
-            request,
-            'This auction can no longer be edited.'
-        )
-        return redirect('seller_auctions')
+    def eligibility_error(locked_auction):
+        # Run the clock-based transition while holding the auction row lock.
+        # This makes the scheduled-state decision agree with bidding and payment
+        # requests, which also lock the auction before changing related records.
+        update_auction_status(locked_auction)
+        if locked_auction.status == 'CANCELLED':
+            return 'Cancelled auctions cannot be edited.'
+        if locked_auction.status in ('CLOSED', 'COMPLETED'):
+            return 'Ended or completed auctions cannot be edited.'
+        if timezone.now() >= locked_auction.start_time:
+            return 'This auction has already started and cannot be edited.'
+        if timezone.now() >= locked_auction.end_time:
+            return 'This auction has already ended and cannot be edited.'
+        if locked_auction.status != 'SCHEDULED':
+            return 'Only scheduled auctions can be edited.'
+        if Bid.objects.filter(auction=locked_auction).exists():
+            return 'Auctions with bid history cannot be edited.'
+        if Payment.objects.filter(auction=locked_auction).exists() or PaymentAttempt.objects.filter(
+            payment__auction=locked_auction,
+        ).exists():
+            return 'Auctions with payment records cannot be edited.'
+        return ''
 
     if request.method == 'POST':
-        form = AuctionForm(request.POST, instance=auction)
+        with transaction.atomic():
+            auction = get_object_or_404(
+                Auction.objects.select_for_update().select_related('product'),
+                id=auction_id,
+                product__seller=request.user,
+            )
+            block_reason = eligibility_error(auction)
+            if block_reason:
+                messages.error(request, block_reason)
+                return redirect('seller_auctions')
 
-        if form.is_valid():
-            updated_auction = form.save(commit=False)
-
-            if updated_auction.start_time <= timezone.now():
-                messages.error(
-                    request,
-                    'Auction start time must be in the future.'
-                )
-            else:
-                updated_auction.status = 'SCHEDULED'
-                updated_auction.save()
-
-                messages.success(
-                    request,
-                    'Auction updated successfully!'
-                )
+            form = AuctionForm(request.POST, instance=auction)
+            if form.is_valid():
+                updated_auction = form.save(commit=False)
+                # Change only the two requested schedule fields. Keep all auction
+                # summary, ownership, winner, status, and history data untouched.
+                auction.start_time = updated_auction.start_time
+                auction.end_time = updated_auction.end_time
+                auction.save(update_fields=['start_time', 'end_time'])
+                messages.success(request, 'Auction schedule updated successfully.')
                 return redirect('seller_auctions')
     else:
+        auction = get_object_or_404(
+            Auction.objects.select_related('product'),
+            id=auction_id,
+            product__seller=request.user,
+        )
+        block_reason = eligibility_error(auction)
+        if block_reason:
+            messages.error(request, block_reason)
+            return redirect('seller_auctions')
         form = AuctionForm(instance=auction)
 
     return render(

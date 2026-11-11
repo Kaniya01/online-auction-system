@@ -127,7 +127,7 @@
 
     <div class="page-header">
         <h1>Edit Auction</h1>
-        <p>Update the schedule of your auction.</p>
+        <p>Update the start and end date and time for this auction.</p>
     </div>
 
     <div class="form-card">
@@ -140,6 +140,11 @@
             <div class="product-info-name">
                 {{ auction.product.name }}
             </div>
+        </div>
+
+        <div class="alert alert-info" role="note">
+            The start time must be in the future, and the end time must be later than the start time.
+            Schedules can only be changed before an auction starts and before it has any bids or payment activity.
         </div>
 
         {% if form.non_field_errors %}

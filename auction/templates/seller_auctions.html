@@ -355,7 +355,7 @@
                                         View
 
                                     </a>
-                                    {% if auction.status == 'SCHEDULED' %}
+                                    {% if auction.can_edit_schedule %}
                                     <a href="{% url 'edit_auction' auction.id %}"
                                         class="btn btn-outline-primary w-100 mt-2">
                                         Edit Auction

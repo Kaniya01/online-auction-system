@@ -1,5 +1,9 @@
 from datetime import timedelta
 from decimal import Decimal
+import hashlib
+import hmac
+import json
+from unittest.mock import Mock, patch
 
 from django.contrib.auth.models import User
 from django.core.management import call_command
@@ -11,7 +15,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from .browse_views import update_auction_status
-from .models import Auction, AuctionReport, Bid, Notification, Product, Profile, Watchlist, RecentlyViewedAuction
+from .models import Auction, AuctionReport, Bid, Notification, Product, Profile, Watchlist, RecentlyViewedAuction, Payment, PaymentAttempt, PaymentWebhookEvent
 
 
 class AuctionFlowTests(TestCase):
@@ -525,6 +529,151 @@ class AccountAndSellerFlowTests(TestCase):
         ).exists())
 
 
+class AuctionScheduleEditTests(TestCase):
+    def setUp(self):
+        self.seller = User.objects.create_user('schedule-edit-seller', password='test-password-123')
+        self.other_seller = User.objects.create_user('schedule-edit-other', password='test-password-123')
+        self.bidder = User.objects.create_user('schedule-edit-bidder', password='test-password-123')
+        self.product = Product.objects.create(
+            seller=self.seller,
+            name='Schedule Edit Product',
+            category='Home',
+            description='Schedule editing test',
+            condition='GOOD',
+            starting_price=Decimal('50.00'),
+        )
+        self.auction = self.make_auction(self.product)
+        self.client.force_login(self.seller)
+
+    def make_auction(self, product, *, status='SCHEDULED', start=None, end=None):
+        now = timezone.now()
+        return Auction.objects.create(
+            product=product,
+            start_time=start or now + timedelta(days=1),
+            end_time=end or now + timedelta(days=2),
+            starting_bid=product.starting_price,
+            current_highest_bid=product.starting_price,
+            status=status,
+        )
+
+    def post_schedule(self, auction=None, *, start=None, end=None):
+        auction = auction or self.auction
+        start = start or timezone.localtime(timezone.now() + timedelta(days=3))
+        end = end or timezone.localtime(timezone.now() + timedelta(days=4))
+        return self.client.post(reverse('edit_auction', args=[auction.pk]), {
+            'start_time': start.strftime('%Y-%m-%dT%H:%M'),
+            'end_time': end.strftime('%Y-%m-%dT%H:%M'),
+        })
+
+    def test_seller_can_edit_unbid_scheduled_auction_schedule_only(self):
+        original_starting_bid = self.auction.starting_bid
+        original_highest_bid = self.auction.current_highest_bid
+        start = timezone.localtime(timezone.now() + timedelta(days=3))
+        end = timezone.localtime(timezone.now() + timedelta(days=4))
+
+        response = self.post_schedule(start=start, end=end)
+
+        self.assertRedirects(response, reverse('seller_auctions'))
+        self.auction.refresh_from_db()
+        self.assertAlmostEqual(self.auction.start_time.timestamp(), start.timestamp(), delta=60)
+        self.assertAlmostEqual(self.auction.end_time.timestamp(), end.timestamp(), delta=60)
+        self.assertEqual(self.auction.status, 'SCHEDULED')
+        self.assertEqual(self.auction.starting_bid, original_starting_bid)
+        self.assertEqual(self.auction.current_highest_bid, original_highest_bid)
+        self.assertIsNone(self.auction.highest_bidder_id)
+        self.assertFalse(Bid.objects.filter(auction=self.auction).exists())
+        self.assertFalse(Payment.objects.filter(auction=self.auction).exists())
+
+    def test_other_seller_cannot_edit_auction(self):
+        self.client.force_login(self.other_seller)
+        response = self.client.get(reverse('edit_auction', args=[self.auction.pk]))
+        self.assertEqual(response.status_code, 404)
+        response = self.post_schedule()
+        self.assertEqual(response.status_code, 404)
+
+    def test_auction_with_bid_history_cannot_be_edited(self):
+        original_start = self.auction.start_time
+        Bid.objects.create(auction=self.auction, buyer=self.bidder, amount=Decimal('55.00'))
+        response = self.post_schedule()
+        self.assertRedirects(response, reverse('seller_auctions'))
+        self.auction.refresh_from_db()
+        self.assertEqual(self.auction.start_time, original_start)
+        self.assertEqual(Bid.objects.filter(auction=self.auction).count(), 1)
+
+    def test_active_closed_completed_and_cancelled_auctions_cannot_be_edited(self):
+        now = timezone.now()
+        cases = (
+            ('ACTIVE', now - timedelta(minutes=5), now + timedelta(hours=1)),
+            ('CLOSED', now - timedelta(hours=2), now - timedelta(hours=1)),
+            ('SCHEDULED', now + timedelta(days=1), now - timedelta(hours=1)),
+            ('COMPLETED', now + timedelta(days=1), now + timedelta(days=2)),
+            ('CANCELLED', now + timedelta(days=1), now + timedelta(days=2)),
+        )
+        for index, (status, start, end) in enumerate(cases):
+            with self.subTest(status=status):
+                product = Product.objects.create(
+                    seller=self.seller,
+                    name=f'Blocked schedule {index}',
+                    category='Home',
+                    description='Blocked schedule test',
+                    condition='GOOD',
+                    starting_price=Decimal('50.00'),
+                )
+                auction = self.make_auction(product, status=status, start=start, end=end)
+                response = self.post_schedule(auction)
+                self.assertRedirects(response, reverse('seller_auctions'))
+
+    def test_payment_record_or_attempt_blocks_schedule_edits(self):
+        original_start = self.auction.start_time
+        payment = Payment.objects.create(
+            auction=self.auction,
+            buyer=self.bidder,
+            amount=Decimal('50.00'),
+            payment_status='UNPAID',
+        )
+        PaymentAttempt.objects.create(payment=payment, attempt_number=1, status='FAILED')
+
+        response = self.post_schedule()
+
+        self.assertRedirects(response, reverse('seller_auctions'))
+        self.auction.refresh_from_db()
+        self.assertEqual(self.auction.start_time, original_start)
+        self.assertTrue(Payment.objects.filter(pk=payment.pk).exists())
+        self.assertEqual(payment.attempts.count(), 1)
+
+    def test_invalid_start_and_end_times_are_rejected(self):
+        past = timezone.localtime(timezone.now() - timedelta(hours=1))
+        later = timezone.localtime(timezone.now() + timedelta(hours=1))
+        response = self.post_schedule(start=past, end=later)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Auction start time must be in the future.')
+
+        future = timezone.localtime(timezone.now() + timedelta(days=2))
+        earlier = timezone.localtime(timezone.now() + timedelta(days=1))
+        response = self.post_schedule(start=future, end=earlier)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'End time must be after start time.')
+
+    def test_status_is_refreshed_before_edit_eligibility_is_checked(self):
+        now = timezone.now()
+        self.auction.start_time = now - timedelta(minutes=1)
+        self.auction.end_time = now + timedelta(hours=1)
+        self.auction.status = 'SCHEDULED'
+        self.auction.save(update_fields=['start_time', 'end_time', 'status'])
+
+        response = self.client.get(reverse('edit_auction', args=[self.auction.pk]))
+
+        self.assertRedirects(response, reverse('seller_auctions'))
+        self.auction.refresh_from_db()
+        self.assertEqual(self.auction.status, 'ACTIVE')
+
+    def test_seller_list_hides_edit_action_for_ineligible_auction(self):
+        Bid.objects.create(auction=self.auction, buyer=self.bidder, amount=Decimal('55.00'))
+        response = self.client.get(reverse('seller_auctions'))
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context['auctions'][0].can_edit_schedule)
+
+
 class PhaseThreeSellerFeatureTests(TestCase):
     def setUp(self):
         self.seller = User.objects.create_user('phase3-seller', password='test-password-123')
@@ -935,3 +1084,319 @@ class PhaseFourGeneralFeatureTests(TestCase):
         self.assertEqual(first.pk, second.pk)
         self.assertEqual(Notification.objects.filter(user=self.buyer, event_key='dedupe-test').count(), 1)
         self.assertEqual(len(mail.outbox), 1)
+
+
+class PhaseFiveAdminModuleTests(TestCase):
+    def setUp(self):
+        self.staff = User.objects.create_user('console-staff', email='staff@example.test', password='test-password-123', is_staff=True)
+        self.superuser = User.objects.create_superuser('console-root', 'root@example.test', 'Strong!Admin-948')
+        self.buyer = User.objects.create_user('console-buyer', email='buyer@example.test', password='test-password-123')
+        self.seller = User.objects.create_user('console-seller', email='seller@example.test', password='test-password-123')
+        self.seller.profile.role = 'SELLER'
+        self.seller.profile.save(update_fields=['role'])
+        self.product = Product.objects.create(
+            seller=self.seller, name='Admin desk lamp', category='Home', description='Lamp listing',
+            condition='GOOD', starting_price=Decimal('15.00'),
+        )
+        self.auction = Auction.objects.create(
+            product=self.product, start_time=timezone.now() - timedelta(minutes=5),
+            end_time=timezone.now() + timedelta(hours=3), starting_bid=Decimal('15.00'),
+            current_highest_bid=Decimal('15.00'), status='ACTIVE',
+        )
+        self.report = AuctionReport.objects.create(
+            auction=self.auction, reporter=self.buyer, reason='SUSPICIOUS', description='Please check details.',
+        )
+        self.client.force_login(self.staff)
+
+    def test_admin_dashboard_is_staff_protected_and_uses_real_counts(self):
+        response = self.client.get(reverse('staff_admin_dashboard'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['total_users'], User.objects.count())
+        self.assertEqual(response.context['total_products'], 1)
+        self.assertEqual(response.context['total_auctions'], 1)
+        self.assertEqual(response.context['pending_reports'], 1)
+        self.client.force_login(self.buyer)
+        self.assertEqual(self.client.get(reverse('staff_admin_dashboard')).status_code, 403)
+
+    def test_user_search_filter_and_account_status_actions(self):
+        User.objects.create_user('search-match', email='needle@example.test')
+        inactive = User.objects.create_user('inactive-match', email='inactive@example.test', is_active=False)
+        searched = self.client.get(reverse('staff_admin_user_list'), {'q': 'needle'})
+        self.assertEqual(searched.context['users'].paginator.count, 1)
+        filtered = self.client.get(reverse('staff_admin_user_list'), {'active': 'inactive'})
+        self.assertContains(filtered, 'inactive-match')
+        self.assertNotIn(self.staff, filtered.context['users'])
+
+        self.client.post(reverse('staff_admin_set_user_active', args=[self.staff.pk]), {'action': 'deactivate'})
+        self.staff.refresh_from_db()
+        self.assertTrue(self.staff.is_active)
+        self.client.post(reverse('staff_admin_set_user_active', args=[self.superuser.pk]), {'action': 'deactivate'})
+        self.superuser.refresh_from_db()
+        self.assertTrue(self.superuser.is_active)
+        self.client.post(reverse('staff_admin_set_user_active', args=[inactive.pk]), {'action': 'activate'})
+        inactive.refresh_from_db()
+        self.assertTrue(inactive.is_active)
+        self.client.post(reverse('staff_admin_set_user_active', args=[inactive.pk]), {'action': 'deactivate'})
+        inactive.refresh_from_db()
+        self.assertFalse(inactive.is_active)
+
+    def test_user_status_mutations_require_post(self):
+        response = self.client.get(reverse('staff_admin_set_user_active', args=[self.buyer.pk]))
+        self.assertEqual(response.status_code, 302)
+        self.buyer.refresh_from_db()
+        self.assertTrue(self.buyer.is_active)
+
+        csrf_client = self.client_class(enforce_csrf_checks=True)
+        csrf_client.force_login(self.staff)
+        denied = csrf_client.post(reverse('staff_admin_set_user_active', args=[self.buyer.pk]), {'action': 'deactivate'})
+        self.assertEqual(denied.status_code, 403)
+        self.buyer.refresh_from_db()
+        self.assertTrue(self.buyer.is_active)
+
+    def test_product_filters_and_archive_restore_preserve_auction_history(self):
+        response = self.client.get(reverse('staff_admin_product_list'), {'q': 'desk', 'seller': self.seller.pk, 'archived': 'no'})
+        self.assertEqual(response.context['products'].paginator.count, 1)
+        detail = reverse('staff_admin_product_detail', args=[self.product.pk])
+        self.client.post(reverse('staff_admin_toggle_product_archive', args=[self.product.pk]))
+        self.product.refresh_from_db()
+        self.assertTrue(self.product.is_archived)
+        self.assertTrue(Auction.objects.filter(pk=self.auction.pk, product=self.product).exists())
+        self.client.post(reverse('staff_admin_toggle_product_archive', args=[self.product.pk]))
+        self.product.refresh_from_db()
+        self.assertFalse(self.product.is_archived)
+        self.assertEqual(self.client.get(detail).status_code, 200)
+        self.client.force_login(self.buyer)
+        self.assertEqual(self.client.post(reverse('staff_admin_toggle_product_archive', args=[self.product.pk])).status_code, 403)
+
+    def test_auction_search_filter_and_safe_cancellation_preserve_bids(self):
+        Bid.objects.create(auction=self.auction, buyer=self.buyer, amount=Decimal('20.00'))
+        response = self.client.get(reverse('staff_admin_auction_list'), {'q': 'desk', 'status': 'ACTIVE', 'seller': self.seller.pk})
+        self.assertEqual(response.context['auctions'].paginator.count, 1)
+        detail_url = reverse('staff_admin_auction_detail', args=[self.auction.pk])
+        self.assertContains(self.client.get(detail_url), 'Bid history')
+        cancel_url = reverse('staff_admin_cancel_auction', args=[self.auction.pk])
+        confirm = self.client.get(cancel_url)
+        self.assertEqual(confirm.status_code, 200)
+        self.auction.refresh_from_db()
+        self.assertEqual(self.auction.status, 'ACTIVE')
+        self.client.post(cancel_url)
+        self.auction.refresh_from_db()
+        self.assertEqual(self.auction.status, 'CANCELLED')
+        self.assertEqual(Bid.objects.filter(auction=self.auction).count(), 1)
+        self.assertTrue(Notification.objects.filter(user=self.buyer, notification_type='AUCTION_CANCELLED').exists())
+        self.client.post(cancel_url)
+        self.assertEqual(Notification.objects.filter(user=self.buyer, notification_type='AUCTION_CANCELLED').count(), 1)
+
+    def test_completed_or_cancelled_auctions_cannot_be_reopened_by_admin_action(self):
+        for status in ('CANCELLED', 'COMPLETED'):
+            with self.subTest(status=status):
+                self.auction.status = status
+                self.auction.save(update_fields=['status'])
+                response = self.client.post(reverse('staff_admin_cancel_auction', args=[self.auction.pk]))
+                self.assertRedirects(response, reverse('staff_admin_auction_detail', args=[self.auction.pk]))
+                self.auction.refresh_from_db()
+                self.assertEqual(self.auction.status, status)
+
+    def test_report_review_permissions_and_admin_note(self):
+        page = self.client.get(reverse('staff_admin_report_list'), {'status': 'OPEN', 'q': 'desk'})
+        self.assertEqual(page.context['reports'].paginator.count, 1)
+        detail = reverse('staff_admin_report_detail', args=[self.report.pk])
+        self.assertEqual(self.client.get(detail).status_code, 200)
+        response = self.client.post(reverse('staff_admin_review_report', args=[self.report.pk]), {
+            'action': 'reviewed', 'admin_note': 'Listing checked against product description.',
+        })
+        self.assertRedirects(response, detail)
+        self.report.refresh_from_db()
+        self.assertEqual(self.report.status, 'REVIEWED')
+        self.assertTrue(self.report.reviewed_at)
+        self.assertEqual(self.report.admin_note, 'Listing checked against product description.')
+        self.client.force_login(self.buyer)
+        self.assertEqual(self.client.get(reverse('staff_admin_report_list')).status_code, 403)
+        self.assertEqual(self.client.post(reverse('staff_admin_review_report', args=[self.report.pk]), {'action': 'dismissed'}).status_code, 403)
+
+    def test_platform_reports_use_real_database_aggregations(self):
+        Bid.objects.create(auction=self.auction, buyer=self.buyer, amount=Decimal('20.00'))
+        response = self.client.get(reverse('staff_admin_platform_reports'))
+        self.assertEqual(response.context['registrations'], User.objects.count())
+        self.assertEqual(response.context['products']['total'], 1)
+        self.assertEqual(response.context['auctions'], 1)
+        self.assertEqual(response.context['bids']['total'], 1)
+        self.assertEqual(response.context['reports'], 1)
+        self.assertEqual(response.status_code, 200)
+
+    def test_platform_analytics_uses_database_aggregates_and_restricts_access(self):
+        Bid.objects.create(auction=self.auction, buyer=self.buyer, amount=Decimal('20.00'))
+        response = self.client.get(reverse('staff_admin_platform_analytics'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(sum(row['total'] for row in response.context['registrations_by_month']), User.objects.count())
+        self.assertEqual(sum(row['total'] for row in response.context['products_by_category']), 1)
+        self.assertEqual(sum(row['total'] for row in response.context['bids_by_day']), 1)
+        self.client.force_login(self.buyer)
+        self.assertEqual(self.client.get(reverse('staff_admin_platform_analytics')).status_code, 403)
+
+
+@override_settings(RAZORPAY_KEY_ID='rzp_test_mock', RAZORPAY_KEY_SECRET='mock-secret', RAZORPAY_WEBHOOK_SECRET='webhook-secret', RAZORPAY_CURRENCY='INR', EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend')
+class RazorpayPaymentTests(TestCase):
+    def setUp(self):
+        self.seller = User.objects.create_user('pay-seller', password='pass-test-123')
+        self.winner = User.objects.create_user('pay-winner', password='pass-test-123')
+        self.other = User.objects.create_user('pay-other', password='pass-test-123')
+        now = timezone.now()
+        self.product = Product.objects.create(seller=self.seller, name='Payment Camera', category='Electronics', description='Camera', condition='GOOD', starting_price=Decimal('10.00'))
+        self.auction = Auction.objects.create(product=self.product, start_time=now - timedelta(days=2), end_time=now - timedelta(days=1), starting_bid=Decimal('10.00'), current_highest_bid=Decimal('123.45'), highest_bidder=self.winner, status='CLOSED')
+        self.winning_bid = Bid.objects.create(auction=self.auction, buyer=self.winner, amount=Decimal('123.45'))
+        Profile.objects.update_or_create(user=self.winner, defaults={'full_name': 'Winner', 'phone_number': '1234567'})
+
+    def _payment_and_attempt(self, status='PENDING'):
+        payment = Payment.objects.create(auction=self.auction, buyer=self.winner, amount=Decimal('123.45'), payment_method='RAZORPAY', payment_status=status, currency='INR')
+        attempt = PaymentAttempt.objects.create(payment=payment, attempt_number=1, status='PENDING', razorpay_order_id='order_test_1')
+        payment.razorpay_order_id = attempt.razorpay_order_id
+        payment.save(update_fields=['razorpay_order_id'])
+        return payment, attempt
+
+    def _webhook(self, event_id, event_type, entity):
+        body = json.dumps({'event': event_type, 'payload': {'payment': {'entity': entity}}}).encode()
+        signature = hmac.new(b'webhook-secret', body, hashlib.sha256).hexdigest()
+        return self.client.post(reverse('razorpay_webhook'), body, content_type='application/json', HTTP_X_RAZORPAY_SIGNATURE=signature, HTTP_X_RAZORPAY_EVENT_ID=event_id)
+
+    def test_only_winner_can_initiate_and_amount_is_server_derived_in_paise(self):
+        self.client.force_login(self.other)
+        denied = self.client.post(reverse('initiate_payment', args=[self.auction.pk]))
+        self.assertEqual(denied.status_code, 403)
+        self.client.force_login(self.winner)
+        mock_client = Mock()
+        mock_client.order.create.return_value = {'id': 'order_test_1', 'amount': 12345, 'currency': 'INR'}
+        with patch('auction.payment_views._client', return_value=mock_client):
+            response = self.client.post(reverse('initiate_payment', args=[self.auction.pk]), data=json.dumps({'amount': 1, 'buyer_id': self.other.pk}), content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['amount'], 12345)
+        self.assertEqual(mock_client.order.create.call_args.kwargs['data']['amount'], 12345)
+        self.assertEqual(Payment.objects.get(auction=self.auction).amount, Decimal('123.45'))
+        self.assertEqual(PaymentAttempt.objects.filter(payment__auction=self.auction).count(), 1)
+
+    def test_unauthenticated_nonwinner_cancelled_and_legacy_completed_are_rejected(self):
+        self.assertEqual(self.client.post(reverse('initiate_payment', args=[self.auction.pk])).status_code, 302)
+        self.client.force_login(self.other)
+        self.assertEqual(self.client.post(reverse('initiate_payment', args=[self.auction.pk])).status_code, 403)
+        self.client.force_login(self.winner)
+        self.auction.status = 'CANCELLED'
+        self.auction.save(update_fields=['status'])
+        self.assertEqual(self.client.post(reverse('initiate_payment', args=[self.auction.pk])).status_code, 409)
+        self.auction.status = 'CLOSED'
+        self.auction.save(update_fields=['status'])
+        Payment.objects.create(auction=self.auction, buyer=self.winner, amount=Decimal('123.45'), payment_method='UPI', payment_status='COMPLETED', transaction_reference='legacy-ref')
+        self.assertEqual(self.client.post(reverse('initiate_payment', args=[self.auction.pk])).status_code, 409)
+
+    def test_invalid_signature_and_mismatched_provider_order_do_not_mark_paid(self):
+        payment, attempt = self._payment_and_attempt()
+        self.client.force_login(self.winner)
+        client = Mock()
+        client.utility.verify_payment_signature.side_effect = ValueError('invalid')
+        payload = {'razorpay_order_id': attempt.razorpay_order_id, 'razorpay_payment_id': 'pay_test', 'razorpay_signature': 'bad'}
+        with patch('auction.payment_views._client', return_value=client):
+            response = self.client.post(reverse('verify_checkout', args=[self.auction.pk]), json.dumps(payload), content_type='application/json')
+        self.assertEqual(response.status_code, 400)
+        self.assertNotEqual(Payment.objects.get(pk=payment.pk).payment_status, 'PAID')
+
+        client = Mock()
+        client.utility.verify_payment_signature.return_value = None
+        client.payment.fetch.return_value = {'id': 'pay_test', 'order_id': 'different_order', 'amount': 12345, 'currency': 'INR', 'status': 'captured'}
+        with patch('auction.payment_views._client', return_value=client):
+            response = self.client.post(reverse('verify_checkout', args=[self.auction.pk]), json.dumps({**payload, 'razorpay_signature': 'valid'}), content_type='application/json')
+        self.assertEqual(response.status_code, 400)
+        self.assertNotEqual(Payment.objects.get(pk=payment.pk).payment_status, 'PAID')
+
+    def test_authorized_is_not_paid_and_capture_is_idempotent(self):
+        payment, attempt = self._payment_and_attempt()
+        self.client.force_login(self.winner)
+        payload = {'razorpay_order_id': attempt.razorpay_order_id, 'razorpay_payment_id': 'pay_test', 'razorpay_signature': 'valid'}
+        client = Mock()
+        client.utility.verify_payment_signature.return_value = None
+        client.payment.fetch.return_value = {'id': 'pay_test', 'order_id': attempt.razorpay_order_id, 'amount': 12345, 'currency': 'INR', 'status': 'authorized'}
+        with patch('auction.payment_views._client', return_value=client):
+            response = self.client.post(reverse('verify_checkout', args=[self.auction.pk]), json.dumps(payload), content_type='application/json')
+        self.assertEqual(response.status_code, 202)
+        payment.refresh_from_db()
+        self.assertNotEqual(payment.payment_status, 'PAID')
+        client.payment.fetch.return_value['status'] = 'captured'
+        with patch('auction.payment_views._client', return_value=client):
+            first = self.client.post(reverse('verify_checkout', args=[self.auction.pk]), json.dumps(payload), content_type='application/json')
+            second = self.client.post(reverse('verify_checkout', args=[self.auction.pk]), json.dumps(payload), content_type='application/json')
+        self.assertEqual(first.json()['status'], 'PAID')
+        self.assertEqual(second.json()['status'], 'PAID')
+        payment.refresh_from_db()
+        self.assertEqual(payment.payment_status, 'PAID')
+        self.assertEqual(payment.razorpay_payment_id, 'pay_test')
+        self.assertEqual(PaymentAttempt.objects.filter(payment=payment).count(), 1)
+
+    def test_retry_after_failed_attempt_creates_new_attempt_but_same_obligation(self):
+        payment, first_attempt = self._payment_and_attempt('FAILED')
+        first_attempt.status = 'FAILED'
+        first_attempt.save(update_fields=['status'])
+        self.client.force_login(self.winner)
+        client = Mock()
+        with patch('auction.payment_views._client', return_value=client):
+            response = self.client.post(reverse('initiate_payment', args=[self.auction.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(Payment.objects.filter(auction=self.auction).count(), 1)
+        self.assertEqual(PaymentAttempt.objects.filter(payment=payment).count(), 2)
+        self.assertEqual(response.json()['order_id'], 'order_test_1')
+        self.assertEqual(client.order.create.call_count, 0)
+
+    def test_repeated_initiation_reuses_existing_provider_order(self):
+        self.client.force_login(self.winner)
+        client = Mock()
+        client.order.create.return_value = {'id': 'order_once', 'amount': 12345, 'currency': 'INR'}
+        with patch('auction.payment_views._client', return_value=client):
+            first = self.client.post(reverse('initiate_payment', args=[self.auction.pk]))
+            second = self.client.post(reverse('initiate_payment', args=[self.auction.pk]))
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(second.status_code, 200)
+        self.assertEqual(first.json()['order_id'], second.json()['order_id'])
+        self.assertEqual(client.order.create.call_count, 1)
+        self.assertEqual(Payment.objects.filter(auction=self.auction).count(), 1)
+        self.assertEqual(PaymentAttempt.objects.filter(payment__auction=self.auction).count(), 1)
+
+    def test_webhook_signature_deduplication_and_out_of_order_event(self):
+        payment, attempt = self._payment_and_attempt()
+        entity = {'entity': 'payment', 'id': 'pay_hook', 'order_id': attempt.razorpay_order_id, 'amount': 12345, 'currency': 'INR', 'status': 'captured'}
+        self.assertEqual(self._webhook('evt-captured', 'payment.captured', entity).status_code, 200)
+        self.assertEqual(self._webhook('evt-captured', 'payment.captured', entity).status_code, 200)
+        self.assertEqual(PaymentWebhookEvent.objects.filter(event_id='evt-captured').count(), 1)
+        failed_entity = {**entity, 'status': 'failed', 'error_code': 'TEMP_ERROR'}
+        self.assertEqual(self._webhook('evt-failed-late', 'payment.failed', failed_entity).status_code, 200)
+        payment.refresh_from_db()
+        attempt.refresh_from_db()
+        self.assertEqual(payment.payment_status, 'PAID')
+        self.assertEqual(attempt.status, 'CAPTURED')
+
+    def test_order_paid_without_payment_entity_does_not_fake_capture(self):
+        payment, attempt = self._payment_and_attempt()
+        body = json.dumps({'event': 'order.paid', 'payload': {'order': {'entity': {'entity': 'order', 'id': attempt.razorpay_order_id, 'status': 'paid'}}}}).encode()
+        signature = hmac.new(b'webhook-secret', body, hashlib.sha256).hexdigest()
+        response = self.client.post(reverse('razorpay_webhook'), body, content_type='application/json', HTTP_X_RAZORPAY_SIGNATURE=signature, HTTP_X_RAZORPAY_EVENT_ID='evt-order-only')
+        payment.refresh_from_db()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(payment.payment_status, 'PENDING')
+        self.assertEqual(PaymentWebhookEvent.objects.get(event_id='evt-order-only').status, 'PROCESSED')
+
+    def test_invalid_webhook_signature_is_rejected_without_record(self):
+        body = json.dumps({'event': 'payment.captured'}).encode()
+        response = self.client.post(reverse('razorpay_webhook'), body, content_type='application/json', HTTP_X_RAZORPAY_SIGNATURE='wrong', HTTP_X_RAZORPAY_EVENT_ID='evt-invalid')
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(PaymentWebhookEvent.objects.filter(event_id='evt-invalid').exists())
+
+    def test_payment_views_are_scoped_and_dashboard_shows_paid_status(self):
+        payment, _attempt = self._payment_and_attempt('PAID')
+        payment.razorpay_payment_id = 'pay_view'
+        payment.paid_at = timezone.now()
+        payment.save(update_fields=['razorpay_payment_id', 'paid_at'])
+        self.client.force_login(self.other)
+        self.assertEqual(self.client.get(reverse('payment_detail', args=[self.auction.pk])).status_code, 403)
+        payment_history = self.client.get(reverse('my_payments'))
+        self.assertEqual(payment_history.status_code, 200)
+        self.assertEqual(payment_history.context['payments'].count(), 0)
+        self.client.force_login(self.winner)
+        self.assertEqual(self.client.get(reverse('payment_detail', args=[self.auction.pk])).status_code, 200)
+        dashboard = self.client.get(reverse('dashboard'))
+        self.assertContains(dashboard, 'Paid')

@@ -110,7 +110,7 @@
 
                 <!-- PRODUCTS -->
 
-                <div class="col-6 col-lg-4">
+                <div class="col-6 col-lg-6">
 
                     <a href="{% url 'seller_products' %}" class="stat-card text-decoration-none">
 
@@ -142,7 +142,7 @@
 
                 <!-- AUCTIONS -->
 
-                <div class="col-6 col-lg-4">
+                <div class="col-6 col-lg-6">
 
                     <a href="{% url 'seller_auctions' %}" class="stat-card text-decoration-none">
 
@@ -169,48 +169,6 @@
                         </div>
 
                     </a>
-
-                </div>
-
-                <!-- ADD PRODUCT -->
-
-                <div class="col-12 col-lg-4">
-
-                    <div class="stat-card">
-
-                        <div class="stat-icon green">
-
-                            <i class="bi bi-plus-circle"></i>
-
-                        </div>
-
-                        <div>
-
-                            <a
-
-                                href="{% url 'add_product' %}"
-
-                                class="text-decoration-none"
-
-                            >
-
-                                <div class="stat-value">
-
-                                    +
-
-                                </div>
-
-                                <div class="stat-label">
-
-                                    Add Product
-
-                                </div>
-
-                            </a>
-
-                        </div>
-
-                    </div>
 
                 </div>
 
@@ -247,20 +205,6 @@
                             </h2>
 
                         </div>
-
-                        <a
-
-                            href="{% url 'add_product' %}"
-
-                            class="btn btn-auction-primary btn-sm"
-
-                        >
-
-                            <i class="bi bi-plus-lg me-1"></i>
-
-                            Add Product
-
-                        </a>
 
                     </div>
 
@@ -418,18 +362,6 @@
 
                                 </p>
 
-                                <a
-
-                                    href="{% url 'add_product' %}"
-
-                                    class="btn btn-auction-primary btn-sm"
-
-                                >
-
-                                    Add Product
-
-                                </a>
-
                             </div>
 
                         {% endif %}
@@ -459,20 +391,6 @@
                             </h2>
 
                         </div>
-
-                        <a
-
-                            href="{% url 'add_product' %}"
-
-                            class="btn btn-auction-primary btn-sm"
-
-                        >
-
-                            <i class="bi bi-plus-lg me-1"></i>
-
-                            Add Product
-
-                        </a>
 
                     </div>
 
@@ -548,18 +466,6 @@
 
                                 </p>
 
-                                <a
-
-                                    href="{% url 'add_product' %}"
-
-                                    class="btn btn-auction-primary btn-sm"
-
-                                >
-
-                                    Add Product
-
-                                </a>
-
                             </div>
 
                         {% endif %}
@@ -601,30 +507,6 @@
                     <div class="section-card-body">
 
                         <div class="quick-actions">
-
-                            <a
-
-                                href="{% url 'add_product' %}"
-
-                                class="quick-action"
-
-                            >
-
-                                <span class="quick-icon">
-
-                                    <i class="bi bi-box-seam"></i>
-
-                                </span>
-
-                                <span>
-
-                                    Add Product
-
-                                </span>
-
-                                <i class="bi bi-arrow-right ms-auto"></i>
-
-                            </a>
 
                             <a href="{% url 'seller_auctions' %}"
 
@@ -744,7 +626,7 @@
 
                 <!-- ACTIVE BIDS -->
 
-                <div class="col-6 col-lg-4">
+                <div class="col-6 col-lg-6">
 
                     <div class="stat-card">
 
@@ -776,7 +658,7 @@
 
                 <!-- WON AUCTIONS -->
 
-                <div class="col-6 col-lg-4">
+                <div class="col-6 col-lg-6">
 
                     <div class="stat-card">
 
@@ -799,48 +681,6 @@
                                 Won Auctions
 
                             </div>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-                <!-- BROWSE -->
-
-                <div class="col-12 col-lg-4">
-
-                    <div class="stat-card">
-
-                        <div class="stat-icon orange">
-
-                            <i class="bi bi-search"></i>
-
-                        </div>
-
-                        <div>
-
-                            <a
-
-                                href="{% url 'browse_auctions' %}"
-
-                                class="text-decoration-none"
-
-                            >
-
-                                <div class="stat-value">
-
-                                    →
-
-                                </div>
-
-                                <div class="stat-label">
-
-                                    Browse Auctions
-
-                                </div>
-
-                            </a>
 
                         </div>
 
@@ -1110,7 +950,7 @@
 
                      ================================================= -->
 
-                <section class="section-card mb-4">
+                <section id="won-auctions" class="section-card mb-4">
 
                     <div class="section-card-header">
 
@@ -1220,9 +1060,7 @@
 
                                                 <td>
 
-                                                    {% if auction.latest_payment %}
-
-                                                        {% if auction.latest_payment.payment_status == 'COMPLETED' %}
+                                                    {% if auction.payment_record.payment_status == 'PAID' %}
 
                                                             <span class="status-pill status-paid">
 
@@ -1232,29 +1070,33 @@
 
                                                             </span>
 
-                                                        {% else %}
+                                                        {% elif auction.payment_record.payment_status == 'PENDING' %}
 
                                                             <span class="status-pill status-pending">
 
                                                                 <i class="bi bi-clock"></i>
 
-                                                                Payment Pending
+                                                                Pending
 
                                                             </span>
 
-                                                        {% endif %}
-
-                                                    {% else %}
+                                                        {% elif auction.payment_record.payment_status == 'FAILED' %}
 
                                                         <span class="status-pill status-pending">
 
-                                                            <i class="bi bi-clock"></i>
+                                                            <i class="bi bi-exclamation-circle"></i>
 
-                                                            Payment Pending
+                                                            Failed
 
                                                         </span>
 
+                                                        {% elif auction.payment_record.payment_status == 'COMPLETED' %}
+                                                        <span class="status-pill status-pending">Legacy record · unverified</span>
+                                                        {% else %}
+                                                        <span class="status-pill status-pending">Unpaid</span>
+
                                                     {% endif %}
+                                                    <div class="mt-2"><a class="btn btn-sm btn-outline-primary" href="{% url 'payment_detail' auction.id %}">Payment details{% if not auction.payment_record or auction.payment_record.payment_status == 'FAILED' %} · Pay now{% endif %}</a></div>
 
                                                 </td>
 
@@ -1449,32 +1291,6 @@
                     <div class="section-card-body">
 
                         <div class="quick-actions">
-
-                            <!-- ONLY QUICK ACTION BROWSE -->
-
-                            <a
-
-                                href="{% url 'browse_auctions' %}"
-
-                                class="quick-action"
-
-                            >
-
-                                <span class="quick-icon">
-
-                                    <i class="bi bi-search"></i>
-
-                                </span>
-
-                                <span>
-
-                                    Browse Auctions
-
-                                </span>
-
-                                <i class="bi bi-arrow-right ms-auto"></i>
-
-                            </a>
 
                             <!-- MY BIDS -->
 

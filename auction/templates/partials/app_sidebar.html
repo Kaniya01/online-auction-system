@@ -27,27 +27,19 @@
             <a href="{% url 'my_watchlist' %}" class="sidebar-link {% if request.resolver_match.url_name == 'my_watchlist' %}active{% endif %}"><i class="bi bi-bookmark-heart"></i><span>My Watchlist</span></a>
             <a href="{% url 'recently_viewed' %}" class="sidebar-link {% if request.resolver_match.url_name == 'recently_viewed' %}active{% endif %}"><i class="bi bi-clock-history"></i><span>Recently Viewed</span></a>
             <a href="{% url 'my_bids' %}" class="sidebar-link {% if request.resolver_match.url_name == 'my_bids' %}active{% endif %}"><i class="bi bi-hammer"></i><span>My Bids</span></a>
-            <span class="sidebar-link disabled" aria-disabled="true" title="Planned for a later phase"><i class="bi bi-trophy"></i><span>Won Auctions</span><small>Later</small></span>
-            <span class="sidebar-link disabled" aria-disabled="true" title="Planned for a later phase"><i class="bi bi-clock-history"></i><span>Auction History</span><small>Later</small></span>
+            <a href="{% url 'dashboard' %}#won-auctions" class="sidebar-link"><i class="bi bi-trophy"></i><span>Won Auctions</span></a>
+            <a href="{% url 'my_payments' %}" class="sidebar-link {% if request.resolver_match.url_name == 'my_payments' or request.resolver_match.url_name == 'payment_detail' %}active{% endif %}"><i class="bi bi-credit-card"></i><span>My Payments</span></a>
         {% endif %}
         <a href="{% url 'notifications' %}" class="sidebar-link {% if request.resolver_match.url_name == 'notifications' %}active{% endif %}"><i class="bi bi-bell"></i><span>Notifications</span>{% if unread_notification_count %}<b class="sidebar-count">{{ unread_notification_count }}</b>{% endif %}</a>
         {% if request.user.is_staff or request.user.is_superuser %}
             <div class="sidebar-section-label admin-label">Administration</div>
-            <a href="{% url 'admin:index' %}" class="sidebar-link"><i class="bi bi-shield-lock"></i><span>Admin Overview</span></a>
-            {% if request.user.is_superuser or perms.auth.view_user or perms.auth.change_user %}
-            <a href="{% url 'admin:auth_user_changelist' %}" class="sidebar-link"><i class="bi bi-people"></i><span>Manage Users</span></a>
-            {% endif %}
-            {% if request.user.is_superuser or perms.auction.view_product or perms.auction.change_product %}
-            <a href="{% url 'admin:auction_product_changelist' %}" class="sidebar-link"><i class="bi bi-box"></i><span>Manage Products</span></a>
-            {% endif %}
-            {% if request.user.is_superuser or perms.auction.view_auction or perms.auction.change_auction %}
-            <a href="{% url 'admin:auction_auction_changelist' %}" class="sidebar-link"><i class="bi bi-megaphone"></i><span>Manage Auctions</span></a>
-            {% endif %}
-            {% if request.user.is_superuser or perms.auction.view_auctionreport or perms.auction.change_auctionreport %}
-            <a href="{% url 'admin:auction_auctionreport_changelist' %}" class="sidebar-link"><i class="bi bi-flag"></i><span>Review Reports</span></a>
-            {% endif %}
-            <span class="sidebar-link disabled" aria-disabled="true" title="Planned for a later phase"><i class="bi bi-file-earmark-bar-graph"></i><span>Reports</span><small>Later</small></span>
-            <span class="sidebar-link disabled" aria-disabled="true" title="Planned for a later phase"><i class="bi bi-bar-chart"></i><span>Platform Analytics</span><small>Later</small></span>
+            <a href="{% url 'staff_admin_dashboard' %}" class="sidebar-link {% if request.resolver_match.url_name == 'staff_admin_dashboard' %}active{% endif %}"><i class="bi bi-shield-lock"></i><span>Admin Overview</span></a>
+            <a href="{% url 'staff_admin_user_list' %}" class="sidebar-link {% if 'user' in request.resolver_match.url_name %}active{% endif %}"><i class="bi bi-people"></i><span>Manage Users</span></a>
+            <a href="{% url 'staff_admin_product_list' %}" class="sidebar-link {% if 'product' in request.resolver_match.url_name %}active{% endif %}"><i class="bi bi-box"></i><span>Manage Products</span></a>
+            <a href="{% url 'staff_admin_auction_list' %}" class="sidebar-link {% if 'auction' in request.resolver_match.url_name and 'recently' not in request.resolver_match.url_name %}active{% endif %}"><i class="bi bi-megaphone"></i><span>Manage Auctions</span></a>
+            <a href="{% url 'staff_admin_report_list' %}" class="sidebar-link {% if 'report' in request.resolver_match.url_name %}active{% endif %}"><i class="bi bi-flag"></i><span>Review Reports</span></a>
+            <a href="{% url 'staff_admin_platform_reports' %}" class="sidebar-link {% if request.resolver_match.url_name == 'staff_admin_platform_reports' %}active{% endif %}"><i class="bi bi-file-earmark-bar-graph"></i><span>Reports</span></a>
+            <a href="{% url 'staff_admin_platform_analytics' %}" class="sidebar-link {% if request.resolver_match.url_name == 'staff_admin_platform_analytics' %}active{% endif %}"><i class="bi bi-bar-chart"></i><span>Platform Analytics</span></a>
         {% endif %}
       </div>
       <div class="sidebar-account-nav">

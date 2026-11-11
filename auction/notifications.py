@@ -32,10 +32,14 @@ def notify_user(user, *, title, message, notification_type, event_key='', link_u
 
         def deliver():
             try:
-                send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, [user.email], fail_silently=True)
-            except Exception:
+                send_mail(subject, body, settings.DEFAULT_FROM_EMAIL, [user.email], fail_silently=False)
+            except Exception as exc:
                 # Email delivery must never roll back an auction transaction.
-                logger.warning('AuctionHub event email delivery failed (event=%s)', event_key or 'unspecified')
+                logger.error(
+                    'AuctionHub event email delivery failed (event=%s, error=%s).',
+                    event_key or 'unspecified',
+                    type(exc).__name__,
+                )
 
         transaction.on_commit(deliver)
     return notice, created
