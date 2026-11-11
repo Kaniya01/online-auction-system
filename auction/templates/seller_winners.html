@@ -1,0 +1,47 @@
+{% extends 'seller_base.html' %}
+{% block title %}Auction Winners | AuctionHub{% endblock %}
+{% block page_title %}Winners{% endblock %}
+{% block content %}
+<header class="seller-page-heading">
+    <span class="eyebrow">Seller workspace</span>
+    <h1>Winners</h1>
+    <p>Results for auctions that have ended. Cancelled auctions are excluded.</p>
+</header>
+<section class="seller-panel overflow-hidden">
+{% if winner_rows %}
+    <div class="table-responsive">
+        <table class="table seller-table">
+            <thead><tr><th>Product</th><th>Result</th><th>Winning bidder</th><th>Winning bid</th><th>Winning bid time</th><th>Auction</th><th>Contact</th></tr></thead>
+            <tbody>
+            {% for row in winner_rows %}
+                <tr>
+                    <td>
+                        {% with image=row.auction.product.images.first %}
+                            {% if image %}<img class="seller-thumb me-2" src="{{ image.image.url }}" alt="{{ row.auction.product.name }}">
+                            {% else %}<span class="seller-thumb seller-thumb-empty me-2"><i class="bi bi-image"></i></span>{% endif %}
+                        {% endwith %}
+                        <strong>{{ row.auction.product.name }}</strong>
+                    </td>
+                    <td><span class="seller-status {% if row.auction.status == 'COMPLETED' %}completed{% else %}closed{% endif %}">{{ row.auction.get_status_display }}</span></td>
+                    {% if row.winning_bid %}
+                    <td>{{ row.winning_bid.buyer.username }}</td>
+                    <td>₹{{ row.winning_bid.amount }}</td>
+                    <td>{{ row.winning_bid.bid_time|date:"d M Y, h:i A" }}</td>
+                    {% else %}
+                    <td colspan="3"><span class="text-muted">No winner · no bids were placed</span></td>
+                    {% endif %}
+                    <td class="text-nowrap">
+                        <a class="btn btn-sm btn-outline-primary" href="{% url 'auction_detail' row.auction.id %}">View auction</a>
+                        <a class="btn btn-sm btn-outline-secondary mt-1" href="{% url 'received_bids' %}?auction={{ row.auction.id }}">Bid history</a>
+                    </td>
+                    <td><span class="text-muted small">Direct messaging is not available. Private contact details are not shared.</span></td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <div class="seller-empty"><i class="bi bi-trophy"></i><h2>No completed auctions yet</h2><p>Ended auctions and their winners will appear here.</p><a class="btn btn-primary" href="{% url 'seller_auctions' %}">View My Auctions</a></div>
+{% endif %}
+</section>
+{% endblock %}

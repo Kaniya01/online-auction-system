@@ -2,8 +2,13 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
+from django.core.paginator import Paginator
+from django.db import transaction
+from django.db.models import Avg, Count, Max, OuterRef, Prefetch, Subquery, Sum
+from django.db.models.functions import TruncDate
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 
 from .forms import RegistrationForm, ProfileForm, ProductForm, AuctionForm
@@ -280,15 +285,267 @@ def seller_auctions(request):
         'product'
     ).order_by('-created_at')
 
-    # Refresh auction statuses before displaying the page.
+    # Refresh open auctions without changing cancelled/completed history.
     for auction in auctions:
         update_auction_status(auction)
+
+    selected_status = request.GET.get('status', '').upper()
+    valid_statuses = {key for key, _ in Auction.STATUS_CHOICES}
+    if selected_status in valid_statuses:
+        auctions = auctions.filter(status=selected_status)
 
     return render(
         request,
         'seller_auctions.html',
-        {'auctions': auctions}
+        {
+            'auctions': auctions,
+            'selected_status': selected_status if selected_status in valid_statuses else '',
+            'status_choices': Auction.STATUS_CHOICES,
+        }
     )
+
+
+@login_required
+def received_bids(request):
+    seller_auctions = Auction.objects.filter(
+        product__seller=request.user,
+    ).select_related('product').prefetch_related('product__images')
+    for auction in seller_auctions:
+        update_auction_status(auction)
+
+    status = request.GET.get('status', '').upper()
+    valid_statuses = {key for key, _ in Auction.STATUS_CHOICES}
+    if status not in valid_statuses:
+        status = ''
+
+    auction_id = request.GET.get('auction', '')
+    allowed_ids = set(seller_auctions.values_list('pk', flat=True))
+    selected_auction = None
+    if auction_id.isdigit() and int(auction_id) in allowed_ids:
+        selected_auction = int(auction_id)
+    else:
+        auction_id = ''
+
+    bids = Bid.objects.filter(
+        auction__product__seller=request.user,
+    ).select_related(
+        'buyer', 'auction', 'auction__product',
+    ).prefetch_related(
+        'auction__product__images',
+        Prefetch(
+            'auction__bids',
+            queryset=Bid.objects.select_related('buyer').order_by('-amount', '-bid_time'),
+            to_attr='ranked_bids',
+        ),
+    ).order_by('-bid_time')
+    if status:
+        bids = bids.filter(auction__status=status)
+    if selected_auction:
+        bids = bids.filter(auction_id=selected_auction)
+
+    page_obj = Paginator(bids, 25).get_page(request.GET.get('page'))
+    leading_ids = {}
+    for bid in page_obj.object_list:
+        if bid.auction_id not in leading_ids:
+            leading = bid.auction.ranked_bids[0] if bid.auction.ranked_bids else None
+            leading_ids[bid.auction_id] = leading.pk if leading else None
+        bid.is_leading = leading_ids[bid.auction_id] == bid.pk
+
+    return render(request, 'received_bids.html', {
+        'page_obj': page_obj,
+        'bids': page_obj.object_list,
+        'auctions': seller_auctions,
+        'status_choices': Auction.STATUS_CHOICES,
+        'selected_status': status,
+        'selected_auction': str(selected_auction or ''),
+    })
+
+
+@login_required
+def seller_winners(request):
+    refreshable = Auction.objects.filter(
+        product__seller=request.user,
+    ).exclude(status__in=('COMPLETED', 'CANCELLED')).select_related('product')
+    for auction in refreshable:
+        update_auction_status(auction)
+
+    auctions = Auction.objects.filter(
+        product__seller=request.user,
+        status__in=('CLOSED', 'COMPLETED'),
+    ).select_related(
+        'product', 'highest_bidder',
+    ).prefetch_related(
+        'product__images',
+        Prefetch(
+            'bids',
+            queryset=Bid.objects.select_related('buyer').order_by('-amount', '-bid_time'),
+            to_attr='ranked_bids',
+        ),
+    ).order_by('-end_time')
+
+    winner_rows = []
+    for auction in auctions:
+        winning_bid = auction.ranked_bids[0] if auction.ranked_bids else None
+        winner_rows.append({'auction': auction, 'winning_bid': winning_bid})
+
+    return render(request, 'seller_winners.html', {'winner_rows': winner_rows})
+
+
+@login_required
+def seller_analytics(request):
+    seller_auctions = Auction.objects.filter(product__seller=request.user)
+    refreshable = seller_auctions.exclude(status__in=('COMPLETED', 'CANCELLED')).select_related('product')
+    for auction in refreshable:
+        update_auction_status(auction)
+
+    seller_auctions = Auction.objects.filter(product__seller=request.user)
+    status_totals = dict(
+        seller_auctions.values('status').annotate(total=Count('pk')).values_list('status', 'total')
+    )
+    total_auctions = sum(status_totals.values())
+    status_chart = []
+    for key, label in Auction.STATUS_CHOICES:
+        count = status_totals.get(key, 0)
+        status_chart.append({
+            'label': label,
+            'count': count,
+            'percent': round(count * 100 / total_auctions) if total_auctions else 0,
+        })
+
+    winning_bid_id = Subquery(
+        Bid.objects.filter(auction_id=OuterRef('auction_id'))
+        .order_by('-amount', '-bid_time')
+        .values('pk')[:1]
+    )
+    winning_bids = Bid.objects.filter(
+        auction__product__seller=request.user,
+        auction__status__in=('CLOSED', 'COMPLETED'),
+        pk=winning_bid_id,
+    )
+    win_metrics = winning_bids.aggregate(
+        total=Sum('amount'),
+        highest=Max('amount'),
+        average=Avg('amount'),
+    )
+
+    bid_days = list(
+        Bid.objects.filter(auction__product__seller=request.user)
+        .annotate(day=TruncDate('bid_time'))
+        .values('day').annotate(total=Count('pk')).order_by('-day')[:14]
+    )
+    max_daily_bids = max((row['total'] for row in bid_days), default=0)
+    bid_chart = [
+        {
+            'day': row['day'],
+            'count': row['total'],
+            'percent': round(row['total'] * 100 / max_daily_bids) if max_daily_bids else 0,
+        }
+        for row in reversed(bid_days)
+    ]
+
+    recent_activity = []
+    recent_bids = Bid.objects.filter(
+        auction__product__seller=request.user,
+    ).select_related('auction__product').order_by('-bid_time')[:8]
+    for bid in recent_bids:
+        recent_activity.append({
+            'created_at': bid.bid_time,
+            'text': f'Bid received on {bid.auction.product.name}: ₹{bid.amount}',
+            'url': reverse('auction_detail', args=[bid.auction_id]),
+        })
+    recent_auctions = seller_auctions.select_related('product').order_by('-created_at')[:8]
+    for auction in recent_auctions:
+        recent_activity.append({
+            'created_at': auction.created_at,
+            'text': f'Auction listed: {auction.product.name}',
+            'url': reverse('auction_detail', args=[auction.pk]),
+        })
+    recent_activity.sort(key=lambda item: item['created_at'], reverse=True)
+
+    context = {
+        'total_products': Product.objects.filter(seller=request.user).count(),
+        'active_auctions': status_totals.get('ACTIVE', 0),
+        'scheduled_auctions': status_totals.get('SCHEDULED', 0),
+        'completed_auctions': status_totals.get('COMPLETED', 0),
+        'cancelled_auctions': status_totals.get('CANCELLED', 0),
+        'closed_auctions': status_totals.get('CLOSED', 0),
+        'auctions_with_bids': seller_auctions.filter(bids__isnull=False).distinct().count(),
+        'auctions_without_bids': seller_auctions.filter(bids__isnull=True).count(),
+        'total_bids': Bid.objects.filter(auction__product__seller=request.user).count(),
+        'winning_bid_value': win_metrics['total'] or 0,
+        'highest_winning_bid': win_metrics['highest'] or 0,
+        'average_winning_bid': win_metrics['average'] or 0,
+        'status_chart': status_chart,
+        'bid_chart': bid_chart,
+        'recent_activity': recent_activity[:10],
+    }
+    return render(request, 'seller_analytics.html', context)
+
+
+@login_required
+def manage_product(request, product_id):
+    if request.method != 'POST':
+        return redirect('seller_products')
+
+    with transaction.atomic():
+        product = get_object_or_404(
+            Product.objects.select_for_update(),
+            pk=product_id,
+            seller=request.user,
+        )
+        has_auction = Auction.objects.filter(product=product).exists()
+        if has_auction:
+            product.is_archived = not product.is_archived
+            product.save(update_fields=['is_archived'])
+            message = 'Product archived. Its auction history remains available.' if product.is_archived else 'Product restored.'
+        else:
+            product.delete()
+            message = 'Unused product deleted.'
+    messages.success(request, message)
+    return redirect('seller_products')
+
+
+@login_required
+def cancel_auction(request, auction_id):
+    auction = get_object_or_404(
+        Auction.objects.select_related('product'),
+        pk=auction_id,
+        product__seller=request.user,
+    )
+    update_auction_status(auction)
+    if auction.status not in ('SCHEDULED', 'ACTIVE'):
+        messages.error(request, 'Only scheduled or active auctions can be cancelled.')
+        return redirect('seller_auctions')
+
+    if request.method != 'POST':
+        return render(request, 'confirm_cancel_auction.html', {'auction': auction})
+
+    with transaction.atomic():
+        auction = get_object_or_404(
+            Auction.objects.select_for_update().select_related('product'),
+            pk=auction_id,
+            product__seller=request.user,
+        )
+        update_auction_status(auction)
+        if auction.status not in ('SCHEDULED', 'ACTIVE'):
+            messages.error(request, 'This auction is no longer eligible for cancellation.')
+            return redirect('seller_auctions')
+
+        bidder_ids = auction.bids.order_by().values_list('buyer_id', flat=True).distinct()
+        auction.status = 'CANCELLED'
+        auction.save(update_fields=['status'])
+        Notification.objects.bulk_create([
+            Notification(
+                user_id=bidder_id,
+                title=f'Auction cancelled: {auction.product.name}',
+                message=f'The seller cancelled the auction for {auction.product.name}. Existing bids remain in the auction history.',
+                notification_type='AUCTION_CANCELLED',
+            )
+            for bidder_id in bidder_ids
+        ])
+
+    messages.success(request, 'Auction cancelled. Bids and history have been preserved, and bidders have been notified.')
+    return redirect('seller_auctions')
 
 
 # =========================================================
@@ -492,6 +749,10 @@ def create_auction(request, product_id):
         seller=request.user
     )
 
+    if product.is_archived:
+        messages.error(request, 'Archived products cannot be used to create an auction.')
+        return redirect('seller_products')
+
     if request.method == 'POST':
         form = AuctionForm(request.POST)
 
@@ -593,7 +854,7 @@ def edit_auction(request, auction_id):
 def seller_products(request):
     products = Product.objects.filter(
         seller=request.user
-    ).order_by('-created_at')
+    ).select_related('auction').order_by('-created_at')
 
     return render(
         request,

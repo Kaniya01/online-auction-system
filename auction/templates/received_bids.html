@@ -1,0 +1,74 @@
+{% extends 'seller_base.html' %}
+{% block title %}Received Bids | AuctionHub{% endblock %}
+{% block page_title %}Received Bids{% endblock %}
+{% block content %}
+<header class="seller-page-heading">
+    <span class="eyebrow">Seller workspace</span>
+    <h1>Received Bids</h1>
+    <p>Bids on auctions owned by your account. Bidder email addresses and private profile details are not shown.</p>
+</header>
+
+<form method="get" class="seller-panel p-3 mb-3 d-flex flex-wrap align-items-end gap-3">
+    <div>
+        <label for="filter-auction" class="form-label">Auction</label>
+        <select name="auction" id="filter-auction" class="form-select">
+            <option value="">All your auctions</option>
+            {% for auction in auctions %}
+            <option value="{{ auction.id }}" {% if selected_auction == auction.id|stringformat:'s' %}selected{% endif %}>{{ auction.product.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div>
+        <label for="filter-status" class="form-label">Auction status</label>
+        <select name="status" id="filter-status" class="form-select">
+            <option value="">All statuses</option>
+            {% for value, label in status_choices %}
+            <option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <button class="btn btn-primary" type="submit">Filter bids</button>
+    <a class="btn btn-outline-secondary" href="{% url 'received_bids' %}">Clear</a>
+</form>
+
+<section class="seller-panel overflow-hidden">
+{% if bids %}
+    <div class="table-responsive">
+        <table class="table seller-table">
+            <thead><tr><th>Product / Auction</th><th>Auction status</th><th>Bidder</th><th>Bid amount</th><th>Bid time</th><th>Position</th><th></th></tr></thead>
+            <tbody>
+            {% for bid in bids %}
+                <tr>
+                    <td>
+                        {% with image=bid.auction.product.images.first %}
+                            {% if image %}<img class="seller-thumb me-2" src="{{ image.image.url }}" alt="{{ bid.auction.product.name }}">
+                            {% else %}<span class="seller-thumb seller-thumb-empty me-2"><i class="bi bi-image"></i></span>{% endif %}
+                        {% endwith %}
+                        <strong>{{ bid.auction.product.name }}</strong><br>
+                        <small class="text-muted">Current highest: ₹{{ bid.auction.current_highest_bid }}</small>
+                    </td>
+                    <td><span class="seller-status {% if bid.auction.status == 'CANCELLED' %}cancelled{% elif bid.auction.status == 'CLOSED' %}closed{% endif %}">{{ bid.auction.get_status_display }}</span></td>
+                    <td>{{ bid.buyer.username }}</td>
+                    <td>₹{{ bid.amount }}</td>
+                    <td>{{ bid.bid_time|date:"d M Y, h:i A" }}</td>
+                    <td>{% if bid.is_leading %}<span class="seller-leading"><i class="bi bi-trophy-fill me-1"></i>Leading</span>{% else %}<span class="text-muted">Previous bid</span>{% endif %}</td>
+                    <td><a class="btn btn-sm btn-outline-primary" href="{% url 'auction_detail' bid.auction_id %}">View</a></td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if page_obj.has_other_pages %}
+    <nav class="d-flex justify-content-between align-items-center p-3" aria-label="Bid pages">
+        <span class="text-muted small">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        <div class="d-flex gap-2">
+            {% if page_obj.has_previous %}<a class="btn btn-sm btn-outline-primary" href="?auction={{ selected_auction }}&amp;status={{ selected_status }}&amp;page={{ page_obj.previous_page_number }}">Previous</a>{% endif %}
+            {% if page_obj.has_next %}<a class="btn btn-sm btn-outline-primary" href="?auction={{ selected_auction }}&amp;status={{ selected_status }}&amp;page={{ page_obj.next_page_number }}">Next</a>{% endif %}
+        </div>
+    </nav>
+    {% endif %}
+{% else %}
+    <div class="seller-empty"><i class="bi bi-inbox"></i><h2>No bids found</h2><p>When buyers bid on your auctions, their bids will appear here.</p><a class="btn btn-primary" href="{% url 'seller_auctions' %}">View My Auctions</a></div>
+{% endif %}
+</section>
+{% endblock %}

@@ -7,6 +7,7 @@ from .models import (
     Bid,
     Payment,
     Notification,
+    Watchlist,
 )
 
 
@@ -25,6 +26,7 @@ class ProductAdmin(admin.ModelAdmin):
         'category',
         'condition',
         'starting_price',
+        'is_archived',
         'created_at',
     )
     list_filter = ('category', 'condition')
@@ -98,3 +100,10 @@ class NotificationAdmin(admin.ModelAdmin):
     )
     list_filter = ('notification_type', 'is_read')
     search_fields = ('user__username', 'title', 'message')
+
+
+@admin.register(Watchlist)
+class WatchlistAdmin(admin.ModelAdmin):
+    list_display = ('user', 'auction', 'created_at')
+    search_fields = ('user__username', 'auction__product__name')
+    list_select_related = ('user', 'auction', 'auction__product')

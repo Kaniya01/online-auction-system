@@ -1,0 +1,25 @@
+{% extends 'seller_base.html' %}
+{% block title %}Confirm Auction Cancellation | AuctionHub{% endblock %}
+{% block page_title %}Cancel Auction{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <header class="seller-page-heading"><span class="eyebrow">Permanent action</span><h1>Cancel auction?</h1></header>
+        <section class="seller-panel p-4 p-md-5">
+            <h2 class="h4 fw-bold">{{ auction.product.name }}</h2>
+            <p class="text-muted">This will permanently mark the auction as cancelled. The auction, bids, winner history and watchlist entries will be retained. No further bids will be accepted.</p>
+            <p><strong>Current status:</strong> {{ auction.get_status_display }}<br><strong>Existing bids:</strong> {{ auction.bids.count }}</p>
+            {% if auction.bids.exists %}
+            <div class="alert alert-warning">All bidders will receive a cancellation notification. Their bids will remain visible in your bid history.</div>
+            {% else %}
+            <div class="alert alert-info">There are no bidders to notify. The auction record will still be retained.</div>
+            {% endif %}
+            <form method="post" class="d-flex flex-wrap gap-2">
+                {% csrf_token %}
+                <button class="btn btn-danger" type="submit">Confirm permanent cancellation</button>
+                <a class="btn btn-outline-secondary" href="{% url 'seller_auctions' %}">Keep auction</a>
+            </form>
+        </section>
+    </div>
+</div>
+{% endblock %}

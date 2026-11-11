@@ -1,0 +1,6 @@
+{% extends 'app_base.html' %}
+{% load static %}
+{% block extra_head %}
+    {{ block.super }}
+    <link rel="stylesheet" href="{% static 'css/seller_features.css' %}">
+{% endblock %}

@@ -1,23 +1,9 @@
+{% extends 'app_base.html' %}
 {% load static %}
-
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>My Auctions | AuctionHub</title>
-
-    <link
-        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-        rel="stylesheet">
-
-    <link
-        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
-        rel="stylesheet">
-
-    <style>
+{% block title %}My Auctions | AuctionHub{% endblock %}
+{% block page_title %}My Auctions{% endblock %}
+{% block extra_head %}
+<style>
 
         body {
             background: #f6f8fc;
@@ -25,65 +11,18 @@
             color: #14213d;
         }
 
-        /* NAVBAR */
 
-        .navbar-auction {
-            background: #ffffff;
-            border-bottom: 1px solid #e5e9f2;
-            min-height: 76px;
-        }
 
-        .navbar-brand {
-            font-size: 25px;
-            font-weight: 700;
-            color: #1f2937;
-        }
 
-        .navbar-brand i {
-            color: #2155d9;
-        }
 
-        .brand-main {
-            color: #2155d9;
-        }
 
-        .brand-light {
-            color: #18233c;
-        }
-
-        .nav-link {
-            color: #536079;
-            font-weight: 500;
-            padding: 10px 16px !important;
-        }
-
-        .nav-link:hover,
+.nav-link:hover,
         .nav-link.active {
             color: #2155d9;
         }
 
-        .profile-menu {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
 
-        .avatar {
-            width: 38px;
-            height: 38px;
-            border-radius: 50%;
-            object-fit: cover;
-        }
-
-        .avatar-placeholder {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #edf3ff;
-            color: #2155d9;
-        }
-
-        /* MAIN */
+/* MAIN */
 
         .page-container {
             max-width: 1200px;
@@ -265,143 +204,18 @@
         }
 
     </style>
-
-</head>
-
-<body>
-
+{% endblock %}
+{% block content %}
 <!-- NAVBAR -->
 
-<nav class="navbar navbar-expand-lg navbar-auction">
 
-    <div class="container">
-
-        <a class="navbar-brand" href="{% url 'home' %}">
-
-            <i class="bi bi-hammer me-2"></i>
-
-            <span class="brand-main">Auction</span><span class="brand-light">Hub</span>
-
-        </a>
-
-        <button
-            class="navbar-toggler"
-            type="button"
-            data-bs-toggle="collapse"
-            data-bs-target="#mainNavbar">
-
-            <span class="navbar-toggler-icon"></span>
-
-        </button>
-
-        <div class="collapse navbar-collapse" id="mainNavbar">
-
-            <ul class="navbar-nav me-auto ms-lg-4">
-
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'dashboard' %}">
-                        Dashboard
-                    </a>
-                </li>
-
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'seller_products' %}">
-                        My Products
-                    </a>
-                </li>
-
-                <li class="nav-item">
-                    <a class="nav-link active" href="{% url 'seller_auctions' %}">
-                        My Auctions
-                    </a>
-                </li>
-
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'browse_auctions' %}">
-                        Browse Auctions
-                    </a>
-                </li>
-
-            </ul>
-
-            <!-- PROFILE -->
-
-            <ul class="navbar-nav">
-
-                <li class="nav-item dropdown">
-
-                    <a
-                        class="nav-link dropdown-toggle profile-menu"
-                        href="#"
-                        role="button"
-                        data-bs-toggle="dropdown">
-
-                        {% if user.profile.profile_picture %}
-
-                            <img
-                                src="{{ user.profile.profile_picture.url }}"
-                                class="avatar"
-                                alt="Profile">
-
-                        {% else %}
-
-                            <span class="avatar avatar-placeholder">
-                                <i class="bi bi-person"></i>
-                            </span>
-
-                        {% endif %}
-
-                        <span>
-                            {{ user.profile.full_name|default:user.username }}
-                        </span>
-
-                    </a>
-
-                    <ul class="dropdown-menu dropdown-menu-end">
-
-                        <li>
-                            <a class="dropdown-item" href="{% url 'profile' %}">
-                                <i class="bi bi-person me-2"></i>
-                                Profile
-                            </a>
-                        </li>
-
-                        <li>
-                            <a class="dropdown-item" href="{% url 'edit_profile' %}">
-                                <i class="bi bi-pencil me-2"></i>
-                                Edit Profile
-                            </a>
-                        </li>
-
-                        <li>
-                            <hr class="dropdown-divider">
-                        </li>
-
-                        <li>
-                            <a class="dropdown-item text-danger" href="{% url 'logout' %}">
-                                <i class="bi bi-box-arrow-right me-2"></i>
-                                Logout
-                            </a>
-                        </li>
-
-                    </ul>
-
-                </li>
-
-            </ul>
-
-        </div>
-
-    </div>
-
-</nav>
 
 
 <!-- MAIN -->
 
 <div class="container page-container">
 
-    {% include 'partials/messages.html' %}
+
 
     <div class="page-header">
 
@@ -412,6 +226,17 @@
         </p>
 
     </div>
+
+    <form method="get" class="d-flex flex-wrap gap-2 align-items-end mb-3">
+        <label class="form-label mb-0" for="auctionStatus">Filter by status</label>
+        <select class="form-select" id="auctionStatus" name="status" style="max-width: 240px">
+            <option value="">All statuses</option>
+            {% for value, label in status_choices %}
+            <option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+        <button class="btn btn-outline-primary" type="submit">Apply</button>
+    </form>
 
 
     <div class="auction-table-card">
@@ -506,6 +331,10 @@
                                             Completed
                                         </span>
 
+                                    {% elif auction.status == 'CANCELLED' %}
+
+                                        <span class="status-badge status-closed">Cancelled</span>
+
                                     {% else %}
 
                                         <span class="status-badge status-closed">
@@ -531,6 +360,10 @@
                                         class="btn btn-outline-primary w-100 mt-2">
                                         Edit Auction
                                     </a>
+                                    {% endif %}
+                                    {% if auction.status == 'SCHEDULED' or auction.status == 'ACTIVE' %}
+                                    <a href="{% url 'cancel_auction' auction.id %}"
+                                       class="btn btn-outline-danger w-100 mt-2">Cancel Auction</a>
                                     {% endif %}
 
                                 </td>
@@ -574,12 +407,4 @@
     </div>
 
 </div>
-
-
-<script
-    src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js">
-</script>
-
-</body>
-
-</html>
+{% endblock %}

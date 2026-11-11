@@ -1,0 +1,58 @@
+<button class="sidebar-scrim" type="button" aria-label="Close navigation" data-sidebar-close></button>
+<aside class="app-sidebar" id="appSidebar" aria-label="Main navigation">
+    <div class="sidebar-brand-row">
+        <a class="sidebar-brand" href="{% url 'dashboard' %}"><i class="bi bi-hammer"></i><span>Auction<span>Hub</span></span></a>
+        <button class="sidebar-collapse" type="button" aria-label="Collapse sidebar" aria-expanded="true" data-sidebar-collapse title="Collapse sidebar"><i class="bi bi-layout-sidebar-inset"></i></button>
+        <button class="sidebar-close-mobile" type="button" aria-label="Close navigation" data-sidebar-close><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="sidebar-mode-switch" aria-label="Account mode">
+        <a href="{% url 'switch_mode' 'BUYER' %}" class="{% if mode == 'BUYER' %}selected{% endif %}"><i class="bi bi-cart3"></i><span>Buyer</span></a>
+        <a href="{% url 'switch_mode' 'SELLER' %}" class="{% if mode == 'SELLER' %}selected{% endif %}"><i class="bi bi-shop"></i><span>Seller</span></a>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="sidebar-primary-nav">
+        <div class="sidebar-section-label">{{ mode|title }} workspace</div>
+        {% if mode == 'SELLER' %}
+            <a href="{% url 'dashboard' %}" class="sidebar-link {% if request.resolver_match.url_name == 'dashboard' or request.resolver_match.url_name == 'home' %}active{% endif %}"><i class="bi bi-grid-1x2"></i><span>Overview</span></a>
+            <a href="{% url 'seller_products' %}" class="sidebar-link {% if request.resolver_match.url_name == 'seller_products' or request.resolver_match.url_name == 'edit_product' %}active{% endif %}"><i class="bi bi-box-seam"></i><span>My Products</span></a>
+            <a href="{% url 'add_product' %}" class="sidebar-link {% if request.resolver_match.url_name == 'add_product' %}active{% endif %}"><i class="bi bi-plus-circle"></i><span>Add Product</span></a>
+            <a href="{% url 'seller_auctions' %}" class="sidebar-link {% if request.resolver_match.url_name == 'seller_auctions' or request.resolver_match.url_name == 'edit_auction' %}active{% endif %}"><i class="bi bi-megaphone"></i><span>My Auctions</span></a>
+            <a href="{% url 'seller_auctions' %}?status=SCHEDULED" class="sidebar-link {% if request.resolver_match.url_name == 'seller_auctions' and request.GET.status == 'SCHEDULED' %}active{% endif %}"><i class="bi bi-calendar3"></i><span>Scheduled Auctions</span></a>
+            <a href="{% url 'received_bids' %}" class="sidebar-link {% if request.resolver_match.url_name == 'received_bids' %}active{% endif %}"><i class="bi bi-cash-stack"></i><span>Received Bids</span></a>
+            <a href="{% url 'seller_winners' %}" class="sidebar-link {% if request.resolver_match.url_name == 'seller_winners' %}active{% endif %}"><i class="bi bi-trophy"></i><span>Winners</span></a>
+            <a href="{% url 'seller_analytics' %}" class="sidebar-link {% if request.resolver_match.url_name == 'seller_analytics' %}active{% endif %}"><i class="bi bi-graph-up"></i><span>Sales &amp; Analytics</span></a>
+        {% else %}
+            <a href="{% url 'dashboard' %}" class="sidebar-link {% if request.resolver_match.url_name == 'dashboard' or request.resolver_match.url_name == 'home' %}active{% endif %}"><i class="bi bi-grid-1x2"></i><span>Overview</span></a>
+            <a href="{% url 'browse_auctions' %}" class="sidebar-link {% if request.resolver_match.url_name == 'browse_auctions' or request.resolver_match.url_name == 'auction_detail' %}active{% endif %}"><i class="bi bi-search"></i><span>Browse Auctions</span></a>
+            <a href="{% url 'my_watchlist' %}" class="sidebar-link {% if request.resolver_match.url_name == 'my_watchlist' %}active{% endif %}"><i class="bi bi-bookmark-heart"></i><span>My Watchlist</span></a>
+            <a href="{% url 'my_bids' %}" class="sidebar-link {% if request.resolver_match.url_name == 'my_bids' %}active{% endif %}"><i class="bi bi-hammer"></i><span>My Bids</span></a>
+            <span class="sidebar-link disabled" aria-disabled="true" title="Planned for a later phase"><i class="bi bi-trophy"></i><span>Won Auctions</span><small>Later</small></span>
+            <span class="sidebar-link disabled" aria-disabled="true" title="Planned for a later phase"><i class="bi bi-clock-history"></i><span>Auction History</span><small>Later</small></span>
+        {% endif %}
+        <a href="{% url 'notifications' %}" class="sidebar-link {% if request.resolver_match.url_name == 'notifications' %}active{% endif %}"><i class="bi bi-bell"></i><span>Notifications</span>{% if unread_notification_count %}<b class="sidebar-count">{{ unread_notification_count }}</b>{% endif %}</a>
+        {% if request.user.is_staff or request.user.is_superuser %}
+            <div class="sidebar-section-label admin-label">Administration</div>
+            <a href="{% url 'admin:index' %}" class="sidebar-link"><i class="bi bi-shield-lock"></i><span>Admin Overview</span></a>
+            {% if request.user.is_superuser or perms.auth.view_user or perms.auth.change_user %}
+            <a href="{% url 'admin:auth_user_changelist' %}" class="sidebar-link"><i class="bi bi-people"></i><span>Manage Users</span></a>
+            {% endif %}
+            {% if request.user.is_superuser or perms.auction.view_product or perms.auction.change_product %}
+            <a href="{% url 'admin:auction_product_changelist' %}" class="sidebar-link"><i class="bi bi-box"></i><span>Manage Products</span></a>
+            {% endif %}
+            {% if request.user.is_superuser or perms.auction.view_auction or perms.auction.change_auction %}
+            <a href="{% url 'admin:auction_auction_changelist' %}" class="sidebar-link"><i class="bi bi-megaphone"></i><span>Manage Auctions</span></a>
+            {% endif %}
+            <span class="sidebar-link disabled" aria-disabled="true" title="Planned for a later phase"><i class="bi bi-file-earmark-bar-graph"></i><span>Reports</span><small>Later</small></span>
+            <span class="sidebar-link disabled" aria-disabled="true" title="Planned for a later phase"><i class="bi bi-bar-chart"></i><span>Platform Analytics</span><small>Later</small></span>
+        {% endif %}
+      </div>
+      <div class="sidebar-account-nav">
+        <div class="sidebar-section-label">Account</div>
+        <a href="{% url 'profile' %}" class="sidebar-link {% if request.resolver_match.url_name == 'profile' or request.resolver_match.url_name == 'edit_profile' %}active{% endif %}"><i class="bi bi-person"></i><span>My Profile</span></a>
+        <span class="sidebar-link disabled" aria-disabled="true" title="Planned for a later phase"><i class="bi bi-gear"></i><span>Settings</span><small>Later</small></span>
+        <span class="sidebar-link disabled" aria-disabled="true" title="Planned for a later phase"><i class="bi bi-question-circle"></i><span>Help &amp; FAQ</span><small>Later</small></span>
+        <span class="sidebar-link disabled" aria-disabled="true" title="Planned for a later phase"><i class="bi bi-file-text"></i><span>Terms &amp; Privacy</span><small>Later</small></span>
+        <a href="{% url 'logout' %}" class="sidebar-link logout-link"><i class="bi bi-box-arrow-right"></i><span>Logout</span></a>
+      </div>
+    </nav>
+</aside>

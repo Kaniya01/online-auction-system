@@ -1,0 +1,40 @@
+{% extends 'seller_base.html' %}
+{% block title %}Sales &amp; Analytics | AuctionHub{% endblock %}
+{% block page_title %}Sales &amp; Analytics{% endblock %}
+{% block content %}
+<header class="seller-page-heading">
+    <span class="eyebrow">Seller workspace</span>
+    <h1>Sales &amp; Analytics</h1>
+    <p>Activity and auction outcomes from your products only.</p>
+</header>
+
+<div class="seller-note mb-4"><i class="bi bi-info-circle me-2"></i><strong>Winning Bid Value</strong> is the value of winning bids on ended auctions. This system has no confirmed payment gateway, so this is not revenue received or proof of payment.</div>
+
+<section class="row g-3 mb-4">
+    <div class="col-6 col-lg-3"><div class="seller-panel seller-metric"><span class="metric-label"><i class="bi bi-box-seam metric-icon me-1"></i>Total products</span><strong class="metric-value">{{ total_products }}</strong></div></div>
+    <div class="col-6 col-lg-3"><div class="seller-panel seller-metric"><span class="metric-label"><i class="bi bi-broadcast metric-icon me-1"></i>Active auctions</span><strong class="metric-value">{{ active_auctions }}</strong></div></div>
+    <div class="col-6 col-lg-3"><div class="seller-panel seller-metric"><span class="metric-label"><i class="bi bi-calendar-event metric-icon me-1"></i>Scheduled auctions</span><strong class="metric-value">{{ scheduled_auctions }}</strong></div></div>
+    <div class="col-6 col-lg-3"><div class="seller-panel seller-metric"><span class="metric-label"><i class="bi bi-check2-circle metric-icon me-1"></i>Completed auctions</span><strong class="metric-value">{{ completed_auctions }}</strong></div></div>
+    <div class="col-6 col-lg-3"><div class="seller-panel seller-metric"><span class="metric-label"><i class="bi bi-x-circle metric-icon me-1"></i>Cancelled auctions</span><strong class="metric-value">{{ cancelled_auctions }}</strong></div></div>
+    <div class="col-6 col-lg-3"><div class="seller-panel seller-metric"><span class="metric-label"><i class="bi bi-chat-left-text metric-icon me-1"></i>Total bids received</span><strong class="metric-value">{{ total_bids }}</strong></div></div>
+    <div class="col-6 col-lg-3"><div class="seller-panel seller-metric"><span class="metric-label"><i class="bi bi-currency-rupee metric-icon me-1"></i>Winning Bid Value</span><strong class="metric-value">₹{{ winning_bid_value|floatformat:2 }}</strong></div></div>
+    <div class="col-6 col-lg-3"><div class="seller-panel seller-metric"><span class="metric-label"><i class="bi bi-graph-up metric-icon me-1"></i>Highest winning bid</span><strong class="metric-value">₹{{ highest_winning_bid|floatformat:2 }}</strong></div></div>
+</section>
+
+<div class="row g-3 mb-4">
+    <div class="col-lg-6"><section class="seller-panel seller-chart h-100"><h2>Auctions by status</h2>
+        {% for item in status_chart %}<div class="chart-row"><span>{{ item.label }}</span><div class="chart-track"><div class="chart-bar" style="width: {{ item.percent }}%"></div></div><strong>{{ item.count }}</strong></div>{% empty %}<p class="text-muted">No auctions yet.</p>{% endfor %}
+        <p class="text-muted small mb-0">{{ auctions_with_bids }} auction(s) with bids · {{ auctions_without_bids }} without bids · {{ closed_auctions }} closed and awaiting completion.</p>
+    </section></div>
+    <div class="col-lg-6"><section class="seller-panel seller-chart h-100"><h2>Bids received by day</h2>
+        {% if bid_chart %}{% for item in bid_chart %}<div class="chart-row"><span>{{ item.day|date:"d M" }}</span><div class="chart-track"><div class="chart-bar" style="width: {{ item.percent }}%"></div></div><strong>{{ item.count }}</strong></div>{% endfor %}{% else %}<p class="text-muted">Bid activity will appear here when your auctions receive bids.</p>{% endif %}
+    </section></div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-5"><section class="seller-panel seller-metric"><span class="metric-label">Average winning bid</span><strong class="metric-value">₹{{ average_winning_bid|floatformat:2 }}</strong><p class="text-muted small mb-0 mt-2">Calculated from winning bids on closed or completed auctions.</p></section></div>
+    <div class="col-lg-7"><section class="seller-panel p-3 p-md-4"><h2 class="h5 fw-bold">Recent auction activity</h2>
+        {% for activity in recent_activity %}<div class="seller-activity"><a href="{{ activity.url }}" class="text-decoration-none">{{ activity.text }}</a><div class="text-muted small">{{ activity.created_at|date:"d M Y, h:i A" }}</div></div>{% empty %}<p class="text-muted mb-0">No auction activity yet.</p>{% endfor %}
+    </section></div>
+</div>
+{% endblock %}

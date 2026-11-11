@@ -1,23 +1,10 @@
+{% extends 'app_base.html' %}
 {% load static %}
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>My Products</title>
-
-    <!-- Bootstrap -->
-    <link
-        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-        rel="stylesheet"
-    >
-
-    <!-- Dashboard CSS -->
-    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
-
-    <style>
+{% block title %}My Products | AuctionHub{% endblock %}
+{% block page_title %}My Products{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+<style>
         /* =========================================
            MY PRODUCTS PAGE
            ========================================= */
@@ -252,125 +239,13 @@
             }
         }
     </style>
-</head>
-
-<body>
-
-    <!-- =========================================
+{% endblock %}
+{% block content %}
+<!-- =========================================
          NAVBAR
          ========================================= -->
 
-    <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
 
-        <div class="container">
-
-            <a
-                class="navbar-brand fw-bold"
-                href="{% url 'dashboard' %}"
-            >
-                Online Auction
-            </a>
-
-            <button
-                class="navbar-toggler"
-                type="button"
-                data-bs-toggle="collapse"
-                data-bs-target="#navbarNav"
-            >
-                <span class="navbar-toggler-icon"></span>
-            </button>
-
-            <div
-                class="collapse navbar-collapse"
-                id="navbarNav"
-            >
-
-                <ul class="navbar-nav me-auto">
-
-                    <li class="nav-item">
-                        <a
-                            class="nav-link"
-                            href="{% url 'dashboard' %}"
-                        >
-                            Home
-                        </a>
-                    </li>
-
-                    <li class="nav-item">
-                        <a
-                            class="nav-link"
-                            href="{% url 'browse_auctions' %}"
-                        >
-                            Browse Auctions
-                        </a>
-                    </li>
-
-                    <li class="nav-item">
-                        <a
-                            class="nav-link active"
-                            href="{% url 'seller_products' %}"
-                        >
-                            My Products
-                        </a>
-                    </li>
-
-                </ul>
-
-
-                <!-- USER MENU -->
-
-                <div class="dropdown">
-
-                    <button
-                        class="btn btn-light dropdown-toggle"
-                        type="button"
-                        data-bs-toggle="dropdown"
-                    >
-                        {{ request.user.username }}
-                    </button>
-
-                    <ul class="dropdown-menu dropdown-menu-end">
-
-                        <li>
-                            <a
-                                class="dropdown-item"
-                                href="{% url 'dashboard' %}"
-                            >
-                                Dashboard
-                            </a>
-                        </li>
-
-                        <li>
-                            <a
-                                class="dropdown-item"
-                                href="{% url 'profile' %}"
-                            >
-                                Profile
-                            </a>
-                        </li>
-
-                        <li>
-                            <hr class="dropdown-divider">
-                        </li>
-
-                        <li>
-                            <a
-                                class="dropdown-item"
-                                href="{% url 'logout' %}"
-                            >
-                                Logout
-                            </a>
-                        </li>
-
-                    </ul>
-
-                </div>
-
-            </div>
-
-        </div>
-
-    </nav>
 
 
     <!-- =========================================
@@ -379,7 +254,7 @@
 
     <main class="products-page">
 
-        {% include 'partials/messages.html' %}
+
 
         <!-- BACK TO DASHBOARD -->
 
@@ -417,6 +292,10 @@
                     <h2 class="product-name">
                         {{ product.name }}
                     </h2>
+
+                    {% if product.is_archived %}
+                    <div class="alert alert-secondary py-2">Archived product · auction history is retained.</div>
+                    {% endif %}
 
 
                     <!-- CATEGORY -->
@@ -528,6 +407,13 @@
                             >
                                 Edit Product
                             </a>
+                            <form method="post" action="{% url 'manage_product' product.id %}"
+                                  onsubmit="return confirm('{% if product.is_archived %}Restore this archived product?{% else %}Archive this product? Existing auction history will remain available.{% endif %}')">
+                                {% csrf_token %}
+                                <button class="btn-edit-product" type="submit">
+                                    {% if product.is_archived %}Restore Product{% else %}Archive Product{% endif %}
+                                </button>
+                            </form>
 
                         </div>
 
@@ -544,12 +430,13 @@
 
                         <div class="product-actions">
 
-                            <a
-                                href="{% url 'create_auction' product.id %}"
-                                class="btn-create-auction"
-                            >
-                                Create Auction
-                            </a>
+                            {% if not product.is_archived %}
+                                <a href="{% url 'create_auction' product.id %}" class="btn-create-auction">
+                                    Create Auction
+                                </a>
+                            {% else %}
+                                <span class="text-muted">Restore this product before creating an auction.</span>
+                            {% endif %}
 
                             <a
                                 href="{% url 'edit_product' product.id %}"
@@ -557,6 +444,11 @@
                             >
                                 Edit Product
                             </a>
+                            <form method="post" action="{% url 'manage_product' product.id %}"
+                                  onsubmit="return confirm('Permanently delete this unused product?')">
+                                {% csrf_token %}
+                                <button class="btn btn-outline-danger" type="submit">Delete Product</button>
+                            </form>
 
                         </div>
 
@@ -598,24 +490,8 @@
          FOOTER
          ========================================= -->
 
-    <footer class="py-4 bg-white border-top">
 
-        <div class="container text-center">
-
-            <p class="text-muted mb-0">
-                Online Auction System
-            </p>
-
-        </div>
-
-    </footer>
 
 
     <!-- Bootstrap JS -->
-
-    <script
-        src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js">
-    </script>
-
-</body>
-</html>
+{% endblock %}

@@ -85,6 +85,17 @@ urlpatterns = [
         browse_views.my_bids,
         name='my_bids'
     ),
+    path('my-watchlist/', browse_views.my_watchlist, name='my_watchlist'),
+    path(
+        'auction/<int:auction_id>/watchlist/add/',
+        browse_views.add_to_watchlist,
+        name='add_to_watchlist',
+    ),
+    path(
+        'auction/<int:auction_id>/watchlist/remove/',
+        browse_views.remove_from_watchlist,
+        name='remove_from_watchlist',
+    ),
 
     # =====================================================
     # SELLER - PRODUCTS
@@ -106,6 +117,11 @@ urlpatterns = [
         'seller/products/edit/<int:product_id>/',
         views.edit_product,
         name='edit_product'
+    ),
+    path(
+        'seller/products/<int:product_id>/manage/',
+        views.manage_product,
+        name='manage_product',
     ),
 
     path(
@@ -134,6 +150,14 @@ urlpatterns = [
         'seller/auctions/edit/<int:auction_id>/',
         views.edit_auction,
         name='edit_auction'
+    ),
+    path('seller/received-bids/', views.received_bids, name='received_bids'),
+    path('seller/winners/', views.seller_winners, name='seller_winners'),
+    path('seller/analytics/', views.seller_analytics, name='seller_analytics'),
+    path(
+        'seller/auctions/<int:auction_id>/cancel/',
+        views.cancel_auction,
+        name='cancel_auction',
     ),
 ]
 

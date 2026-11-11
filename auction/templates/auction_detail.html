@@ -1,33 +1,11 @@
+{% extends 'app_base.html' %}
 {% load static %}
-
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-
-    <meta charset="UTF-8">
-
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>AuctionHub | Auction Details</title>
-
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-          rel="stylesheet">
-
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
-          rel="stylesheet">
-
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
-          rel="stylesheet">
-
-    <link rel="stylesheet"
+{% block title %}Auction Details | AuctionHub{% endblock %}
+{% block page_title %}Auction Details{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet"
           href="{% static 'css/browse_auctions.css' %}">
-
-    <style>
+<style>
 
         /* =========================
            AUCTION DETAIL
@@ -368,190 +346,13 @@
         }
 
     </style>
-
-</head>
-
-
-<body>
-
-
+{% endblock %}
+{% block content %}
 <!-- =========================
      NAVBAR
      ========================= -->
 
-<nav class="navbar navbar-expand-lg navbar-auction">
 
-    <div class="container">
-
-        <a class="navbar-brand"
-           href="{% url 'home' %}">
-
-            <i class="bi bi-hammer me-2"></i>
-
-            <span class="brand-main">Auction</span><span class="brand-light">Hub</span>
-
-        </a>
-
-
-        <button class="navbar-toggler"
-                type="button"
-                data-bs-toggle="collapse"
-                data-bs-target="#mainNavbar">
-
-            <span class="navbar-toggler-icon"></span>
-
-        </button>
-
-
-        <div class="collapse navbar-collapse"
-             id="mainNavbar">
-
-
-            <!-- NAVIGATION -->
-
-            <ul class="navbar-nav me-auto ms-lg-4">
-
-                <li class="nav-item">
-
-                    <a class="nav-link"
-                       href="{% url 'home' %}">
-
-                        Home
-
-                    </a>
-
-                </li>
-
-
-                <li class="nav-item">
-
-                    <a class="nav-link active"
-                       href="{% url 'browse_auctions' %}">
-
-                        Browse Auctions
-
-                    </a>
-
-                </li>
-
-
-                <li class="nav-item">
-
-                    <a class="nav-link"
-                       href="{% url 'dashboard' %}">
-
-                        Dashboard
-
-                    </a>
-
-                </li>
-
-            </ul>
-
-
-            <!-- PROFILE -->
-
-            <ul class="navbar-nav">
-
-                <li class="nav-item dropdown">
-
-                    <a class="nav-link dropdown-toggle profile-menu"
-                       href="#"
-                       role="button"
-                       data-bs-toggle="dropdown">
-
-
-                        {% if user.profile.profile_picture %}
-
-                            <img src="{{ user.profile.profile_picture.url }}"
-                                 class="avatar"
-                                 alt="Profile">
-
-                        {% else %}
-
-                            <span class="avatar avatar-placeholder">
-
-                                <i class="bi bi-person"></i>
-
-                            </span>
-
-                        {% endif %}
-
-
-                        <span>
-
-                            {{ user.profile.full_name|default:user.username }}
-
-                        </span>
-
-
-                    </a>
-
-
-                    <ul class="dropdown-menu dropdown-menu-end">
-
-
-                        <li>
-
-                            <a class="dropdown-item"
-                               href="{% url 'profile' %}">
-
-                                <i class="bi bi-person me-2"></i>
-
-                                Profile
-
-                            </a>
-
-                        </li>
-
-
-                        <li>
-
-                            <a class="dropdown-item"
-                               href="{% url 'edit_profile' %}">
-
-                                <i class="bi bi-pencil me-2"></i>
-
-                                Edit Profile
-
-                            </a>
-
-                        </li>
-
-
-                        <li>
-
-                            <hr class="dropdown-divider">
-
-                        </li>
-
-
-                        <li>
-
-                            <a class="dropdown-item text-danger"
-                               href="{% url 'logout' %}">
-
-                                <i class="bi bi-box-arrow-right me-2"></i>
-
-                                Logout
-
-                            </a>
-
-                        </li>
-
-
-                    </ul>
-
-                </li>
-
-            </ul>
-
-
-        </div>
-
-    </div>
-
-</nav>
 
 
 
@@ -627,7 +428,7 @@
 
                 <div class="detail-content">
 
-                    {% include 'partials/messages.html' %}
+
 
 
                     <!-- STATUS -->
@@ -662,6 +463,13 @@
 
                         </div>
 
+                    {% elif auction.status == 'CANCELLED' %}
+
+                        <div class="status-badge status-closed">
+                            <i class="bi bi-x-circle-fill"></i>
+                            Auction Cancelled
+                        </div>
+
                     {% endif %}
 
 
@@ -687,6 +495,24 @@
                         {{ auction.product.name }}
 
                     </h1>
+
+                    {% if is_watchlisted %}
+                        <form method="post" action="{% url 'remove_from_watchlist' auction.id %}" class="mb-3">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-danger">
+                                <i class="bi bi-heart-fill me-1" aria-hidden="true"></i> Saved · Remove from Watchlist
+                            </button>
+                        </form>
+                    {% elif auction.product.seller_id != request.user.id %}
+                        {% if auction.status == 'ACTIVE' or auction.status == 'SCHEDULED' %}
+                        <form method="post" action="{% url 'add_to_watchlist' auction.id %}" class="mb-3">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-outline-primary">
+                                <i class="bi bi-heart me-1" aria-hidden="true"></i> Add to Watchlist
+                            </button>
+                        </form>
+                        {% endif %}
+                    {% endif %}
 
 
 
@@ -1003,6 +829,13 @@
 
                         </div>
 
+                    {% elif auction.status == 'CANCELLED' %}
+
+                        <div class="alert alert-secondary mt-3">
+                            <i class="bi bi-x-circle-fill me-2"></i>
+                            This auction was cancelled. Bidding is unavailable and previous bids are retained.
+                        </div>
+
                     {% endif %}
 
 
@@ -1041,6 +874,13 @@
 
                         </div>
 
+                    {% elif auction.status == 'CANCELLED' %}
+
+                        <div class="auction-message closed">
+                            <i class="bi bi-x-circle-fill me-2"></i>
+                            This auction was cancelled. Bidding is no longer available.
+                        </div>
+
                     {% endif %}
 
 
@@ -1072,12 +912,4 @@
 
 
 </main>
-
-
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
-
-</body>
-
-</html>
+{% endblock %}

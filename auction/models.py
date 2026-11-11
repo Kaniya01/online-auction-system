@@ -58,6 +58,7 @@ class Product(models.Model):
         decimal_places=2,
         validators=[MinValueValidator(0.01)]
     )
+    is_archived = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -83,11 +84,12 @@ class Auction(models.Model):
         ('ACTIVE', 'Active'),
         ('CLOSED', 'Closed'),
         ('COMPLETED', 'Completed'),
+        ('CANCELLED', 'Cancelled'),
     ]
 
     product = models.OneToOneField(
         Product,
-        on_delete=models.CASCADE,
+        on_delete=models.PROTECT,
         related_name='auction'
     )
     start_time = models.DateTimeField()
@@ -143,6 +145,32 @@ class Bid(models.Model):
 
     def __str__(self):
         return f"{self.buyer.username} - ₹{self.amount}"
+
+
+class Watchlist(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='watchlist_items',
+    )
+    auction = models.ForeignKey(
+        Auction,
+        on_delete=models.CASCADE,
+        related_name='watchlist_entries',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'auction'],
+                name='unique_user_auction_watchlist',
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} watches {self.auction}"
 
 
 class Payment(models.Model):
@@ -203,6 +231,7 @@ class Notification(models.Model):
         ('AUCTION_ENDING', 'Auction Ending'),
         ('WINNER', 'Winner'),
         ('PAYMENT', 'Payment'),
+        ('AUCTION_CANCELLED', 'Auction Cancelled'),
     ]
 
     user = models.ForeignKey(

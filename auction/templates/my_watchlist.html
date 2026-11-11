@@ -1,0 +1,73 @@
+{% extends 'app_base.html' %}
+{% load static %}
+{% block title %}My Watchlist | AuctionHub{% endblock %}
+{% block page_title %}My Watchlist{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'css/browse_auctions.css' %}">
+<style>
+        .watchlist-top-link { color: #2155d9; font-weight: 600; text-decoration: none; }
+        .watchlist-status { display: inline-flex; border-radius: 20px; background: #edf3ff; color: #2155d9; padding: 5px 10px; font-size: .8rem; font-weight: 600; }
+        .watchlist-meta { color: #64718a; font-size: .9rem; }
+        .watchlist-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        @media (max-width: 420px) { .watchlist-actions { grid-template-columns: 1fr; } }
+    </style>
+{% endblock %}
+{% block content %}
+<main class="container browse-container py-5">
+
+        <header class="browse-header mb-4">
+            <span class="browse-label">SAVED FOR LATER</span>
+            <h1 class="mb-2"><i class="bi bi-heart-fill me-2 text-primary" aria-hidden="true"></i>My Watchlist</h1>
+            <p class="mb-0">Keep an eye on auctions you may want to bid on.</p>
+        </header>
+
+        {% if watchlist_entries %}
+        <div class="row g-4">
+            {% for entry in watchlist_entries %}
+            {% with auction=entry.auction %}
+            <div class="col-md-6 col-lg-4">
+                <article class="auction-card h-100">
+                    <div class="auction-image">
+                        {% with image=auction.product.images.first %}
+                            {% if image %}<img src="{{ image.image.url }}" alt="{{ auction.product.name }}">
+                            {% else %}<div class="image-placeholder"><i class="bi bi-image" aria-hidden="true"></i></div>{% endif %}
+                        {% endwith %}
+                    </div>
+                    <div class="auction-content">
+                        <div class="d-flex justify-content-between align-items-center gap-2 mb-2">
+                            <span class="category-badge">{{ auction.product.category }}</span>
+                            <span class="watchlist-status">{{ auction.get_status_display|default:auction.status|title }}</span>
+                        </div>
+                        <h2 class="h4">{{ auction.product.name }}</h2>
+                        <p class="auction-description">{{ auction.product.description|truncatewords:18 }}</p>
+                        <div class="watchlist-meta mb-3">
+                            <div><strong>Condition:</strong> {{ auction.product.get_condition_display|default:auction.product.condition }}</div>
+                            <div><strong>Starting price:</strong> ₹{{ auction.starting_bid }}</div>
+                            <div><strong>Current highest bid:</strong>
+                                {% if auction.bids.exists %}₹{{ auction.current_highest_bid }}{% else %}No bids yet{% endif %}
+                            </div>
+                            <div><strong>Ends:</strong> {{ auction.end_time|date:"d M Y, h:i A" }}</div>
+                        </div>
+                        <div class="watchlist-actions mt-auto">
+                            <a href="{% url 'auction_detail' auction.id %}" class="btn btn-auction-primary">View Auction <i class="bi bi-arrow-right ms-1" aria-hidden="true"></i></a>
+                            <form method="post" action="{% url 'remove_from_watchlist' auction.id %}">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-outline-danger w-100"><i class="bi bi-heartbreak me-1" aria-hidden="true"></i>Remove</button>
+                            </form>
+                        </div>
+                    </div>
+                </article>
+            </div>
+            {% endwith %}
+            {% endfor %}
+        </div>
+        {% else %}
+        <section class="empty-auctions text-center">
+            <div class="empty-icon"><i class="bi bi-bookmark-heart" aria-hidden="true"></i></div>
+            <h2>Your watchlist is empty</h2>
+            <p>Save scheduled or active auctions to keep track of them here.</p>
+            <a href="{% url 'browse_auctions' %}" class="btn btn-auction-primary">Browse Auctions</a>
+        </section>
+        {% endif %}
+    </main>
+{% endblock %}

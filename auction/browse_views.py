@@ -7,7 +7,7 @@ from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
-from .models import Auction, Bid, Notification
+from .models import Auction, Bid, Notification, Watchlist
 
 
 # =========================================================
@@ -29,9 +29,9 @@ def update_auction_status(auction):
         'product'
     ).get(pk=auction.pk)
 
-    # A completed auction is an administrative/business decision and must not
-    # be changed back to CLOSED just because its end time has passed.
-    if locked_auction.status == 'COMPLETED':
+    # Completed and cancelled states are final and must not be changed by the
+    # clock-based status refresher.
+    if locked_auction.status in ('COMPLETED', 'CANCELLED'):
         auction.status = locked_auction.status
         auction.current_highest_bid = locked_auction.current_highest_bid
         auction.highest_bidder = locked_auction.highest_bidder
@@ -183,6 +183,9 @@ def browse_auctions(request):
         'categories': categories,
         'search_query': search_query,
         'selected_category': category,
+        'watchlisted_auction_ids': set(
+            Watchlist.objects.filter(user=request.user).values_list('auction_id', flat=True)
+        ),
     }
 
     return render(
@@ -224,6 +227,10 @@ def auction_detail(request, auction_id):
     context = {
         'auction': auction,
         'my_bid': my_bid,
+        'is_watchlisted': Watchlist.objects.filter(
+            user=request.user,
+            auction=auction,
+        ).exists(),
     }
 
     return render(
@@ -231,6 +238,63 @@ def auction_detail(request, auction_id):
         'auction_detail.html',
         context
     )
+
+
+@login_required
+def my_watchlist(request):
+    entries = Watchlist.objects.filter(user=request.user).select_related(
+        'auction',
+        'auction__product',
+        'auction__product__seller',
+    ).prefetch_related('auction__product__images')
+
+    # Keep displayed status and bid summaries current, including saved auctions
+    # that have since ended.
+    for entry in entries:
+        update_auction_status(entry.auction)
+
+    return render(request, 'my_watchlist.html', {'watchlist_entries': entries})
+
+
+@login_required
+def add_to_watchlist(request, auction_id):
+    if request.method != 'POST':
+        return redirect('auction_detail', auction_id=auction_id)
+
+    auction = get_object_or_404(
+        Auction.objects.select_related('product'),
+        pk=auction_id,
+    )
+    update_auction_status(auction)
+
+    if auction.product.seller_id == request.user.id:
+        messages.error(request, 'You cannot add your own auction to your watchlist.')
+    elif auction.status not in ('SCHEDULED', 'ACTIVE'):
+        messages.error(request, 'Only scheduled or active auctions can be added to your watchlist.')
+    else:
+        _, created = Watchlist.objects.get_or_create(user=request.user, auction=auction)
+        if created:
+            messages.success(request, 'Auction added to your watchlist.')
+        else:
+            messages.info(request, 'This auction is already in your watchlist.')
+
+    return redirect('auction_detail', auction_id=auction_id)
+
+
+@login_required
+def remove_from_watchlist(request, auction_id):
+    if request.method != 'POST':
+        return redirect('my_watchlist')
+
+    deleted, _ = Watchlist.objects.filter(
+        user=request.user,
+        auction_id=auction_id,
+    ).delete()
+    if deleted:
+        messages.success(request, 'Auction removed from your watchlist.')
+    else:
+        messages.error(request, 'That auction is not in your watchlist.')
+    return redirect('my_watchlist')
 
 
 # =========================================================
@@ -260,6 +324,7 @@ def place_bid(request, auction_id):
             response = reject({
                 'SCHEDULED': 'This auction has not started yet.',
                 'CLOSED': 'This auction has already ended.',
+                'CANCELLED': 'This auction was cancelled and cannot receive bids.',
             }.get(auction.status, 'Bidding is not available for this auction.'))
         else:
             try:
