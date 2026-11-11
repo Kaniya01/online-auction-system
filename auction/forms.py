@@ -1,5 +1,7 @@
 from django import forms
+from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth.models import User
+from django.utils import timezone
 from .models import Profile, Product, Auction
 
 class RegistrationForm(forms.Form):
@@ -46,6 +48,14 @@ class RegistrationForm(forms.Form):
                 raise forms.ValidationError(
                     'Passwords do not match.'
                 )
+            candidate_user = User(
+                username=cleaned_data.get('username', ''),
+                email=cleaned_data.get('email', ''),
+            )
+            try:
+                validate_password(password, user=candidate_user)
+            except forms.ValidationError as error:
+                self.add_error('password', error)
 
         return cleaned_data
 
@@ -144,6 +154,9 @@ class AuctionForm(forms.ModelForm):
         cleaned_data = super().clean()
         start_time = cleaned_data.get('start_time')
         end_time = cleaned_data.get('end_time')
+
+        if start_time and start_time <= timezone.now():
+            self.add_error('start_time', 'Auction start time must be in the future.')
 
         if start_time and end_time and end_time <= start_time:
             raise forms.ValidationError(

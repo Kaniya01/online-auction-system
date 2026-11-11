@@ -2,11 +2,12 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
 from .forms import RegistrationForm, ProfileForm, ProductForm, AuctionForm
-from .models import Profile, Product, Auction, ProductImage, Bid
+from .models import Profile, Product, Auction, ProductImage, Bid, Notification
 from .browse_views import update_auction_status
 
 
@@ -31,15 +32,24 @@ def register(request):
                 password=password
             )
 
-            Profile.objects.create(
+            Profile.objects.update_or_create(
                 user=user,
-                full_name=full_name,
-                phone_number=phone_number
+                defaults={
+                    'full_name': full_name,
+                    'phone_number': phone_number,
+                },
+            )
+            Notification.objects.create(
+                user=user,
+                title='Welcome to AuctionHub',
+                message='Your account is ready. Browse auctions or list a product to get started.',
+                notification_type='REGISTRATION',
             )
 
             messages.success(
                 request,
-                'Account created successfully! You can now log in.'
+                'Account created successfully! You can now log in.',
+                extra_tags='registration',
             )
             return redirect('login')
     else:
@@ -65,32 +75,22 @@ def login_view(request):
 
         if user is not None:
             login(request, user)
+            next_url = request.POST.get('next') or request.GET.get('next')
+            if next_url and url_has_allowed_host_and_scheme(
+                next_url,
+                allowed_hosts={request.get_host()},
+                require_https=request.is_secure(),
+            ):
+                return redirect(next_url)
             return redirect('dashboard')
 
-        messages.error(request, 'Invalid username or password.')
+        messages.error(
+            request,
+            'Invalid username or password.',
+            extra_tags='login',
+        )
 
     return render(request, 'login.html')
-
-
-# =========================================================
-# UPDATE ALL AUCTION STATUSES
-# =========================================================
-
-def update_auction_statuses():
-    """Update auction statuses according to their scheduled times."""
-    now = timezone.now()
-
-    for auction in Auction.objects.all():
-        if now < auction.start_time:
-            new_status = 'SCHEDULED'
-        elif auction.start_time <= now < auction.end_time:
-            new_status = 'ACTIVE'
-        else:
-            new_status = 'CLOSED'
-
-        if auction.status != new_status:
-            auction.status = new_status
-            auction.save(update_fields=['status'])
 
 
 # =========================================================
@@ -180,7 +180,7 @@ def dashboard(request):
         auction
         for auction in my_bid_auctions
         if (
-            auction.status == 'CLOSED'
+            auction.status in ['CLOSED', 'COMPLETED']
             and auction.highest_bidder_id == user.id
         )
     ]
@@ -232,9 +232,40 @@ def dashboard(request):
         'active_bids': active_bids,
         'won_auctions': won_auctions,
         'ending_auctions': ending_auctions,
+        'unread_notification_count': Notification.objects.filter(
+            user=user,
+            is_read=False,
+        ).count(),
     }
 
     return render(request, 'dashboard.html', context)
+
+
+@login_required
+def notifications(request):
+    items = Notification.objects.filter(user=request.user).order_by('-created_at')
+    return render(request, 'notifications.html', {'notifications': items})
+
+
+@login_required
+def mark_notification_read(request, notification_id):
+    if request.method == 'POST':
+        notification = get_object_or_404(
+            Notification,
+            id=notification_id,
+            user=request.user,
+        )
+        if not notification.is_read:
+            notification.is_read = True
+            notification.save(update_fields=['is_read'])
+    return redirect('notifications')
+
+
+@login_required
+def mark_all_notifications_read(request):
+    if request.method == 'POST':
+        Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
+    return redirect('notifications')
 
 
 # =========================================================
@@ -248,6 +279,10 @@ def seller_auctions(request):
     ).select_related(
         'product'
     ).order_by('-created_at')
+
+    # Refresh auction statuses before displaying the page.
+    for auction in auctions:
+        update_auction_status(auction)
 
     return render(
         request,
@@ -276,7 +311,11 @@ def switch_mode(request, mode):
 
 def logout_view(request):
     logout(request)
-    messages.success(request, 'You have been logged out.')
+    messages.success(
+        request,
+        'You have been logged out.',
+        extra_tags='logout',
+    )
     return redirect('login')
 
 
@@ -463,6 +502,13 @@ def create_auction(request, product_id):
             auction.current_highest_bid = product.starting_price
             auction.status = 'SCHEDULED'
             auction.save()
+
+            Notification.objects.create(
+                user=request.user,
+                title=f"Auction created: {product.name}",
+                message='Your auction is scheduled and will open at the selected start time.',
+                notification_type='AUCTION_CREATED',
+            )
 
             messages.success(request, 'Auction created successfully!')
             return redirect('dashboard')

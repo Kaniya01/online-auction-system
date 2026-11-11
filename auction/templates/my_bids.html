@@ -264,7 +264,7 @@
                         <div class="mb-2">
 
 
-                            {% if bid_info.auction.status == 'CLOSED' %}
+                            {% if bid_info.auction.status == 'CLOSED' or bid_info.auction.status == 'COMPLETED' %}
 
                                 {% if bid_info.auction.highest_bidder_id == request.user.id %}
 

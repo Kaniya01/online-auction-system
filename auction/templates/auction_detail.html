@@ -627,6 +627,8 @@
 
                 <div class="detail-content">
 
+                    {% include 'partials/messages.html' %}
+
 
                     <!-- STATUS -->
 
@@ -914,15 +916,17 @@
 
                                     <div class="mb-3">
 
-                                        <input
-                                            type="number"
-                                            name="amount"
-                                            class="form-control bid-input"
-                                            min="{{ auction.current_highest_bid }}"
-                                            step="0.01"
-                                            placeholder="Enter your bid"
-                                            required
-                                        >
+
+                                    <input
+                                        type="number"
+                                        name="amount"
+                                        class="form-control bid-input"
+                                        min="{{ auction.current_highest_bid }}"
+                                        step="0.01"
+                                        placeholder="Enter your bid"
+                                        required
+                                    >
+
 
                                     </div>
 

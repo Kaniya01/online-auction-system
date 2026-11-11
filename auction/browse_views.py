@@ -2,17 +2,19 @@ from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 
-from .models import Auction, Bid
+from .models import Auction, Bid, Notification
 
 
 # =========================================================
 # AUCTION STATUS
 # =========================================================
 
+@transaction.atomic
 def update_auction_status(auction):
     """
     Update auction status based on the current time.
@@ -21,17 +23,32 @@ def update_auction_status(auction):
     are synchronized with the actual Bid records.
     """
 
+    # Lock the row so competing requests cannot repeat a transition or notify
+    # the winner more than once.
+    locked_auction = Auction.objects.select_for_update().select_related(
+        'product'
+    ).get(pk=auction.pk)
+
+    # A completed auction is an administrative/business decision and must not
+    # be changed back to CLOSED just because its end time has passed.
+    if locked_auction.status == 'COMPLETED':
+        auction.status = locked_auction.status
+        auction.current_highest_bid = locked_auction.current_highest_bid
+        auction.highest_bidder = locked_auction.highest_bidder
+        return auction
+
+    previous_status = locked_auction.status
     now = timezone.now()
 
     # -----------------------------------------------------
     # SCHEDULED
     # -----------------------------------------------------
 
-    if now < auction.start_time:
+    if now < locked_auction.start_time:
 
         new_status = 'SCHEDULED'
 
-        highest_bid = auction.bids.order_by(
+        highest_bid = locked_auction.bids.order_by(
             '-amount',
             '-bid_time'
         ).first()
@@ -40,18 +57,18 @@ def update_auction_status(auction):
             new_highest_bid = highest_bid.amount
             new_highest_bidder = highest_bid.buyer
         else:
-            new_highest_bid = auction.starting_bid
+            new_highest_bid = locked_auction.starting_bid
             new_highest_bidder = None
 
     # -----------------------------------------------------
     # ACTIVE
     # -----------------------------------------------------
 
-    elif auction.start_time <= now < auction.end_time:
+    elif locked_auction.start_time <= now < locked_auction.end_time:
 
         new_status = 'ACTIVE'
 
-        highest_bid = auction.bids.order_by(
+        highest_bid = locked_auction.bids.order_by(
             '-amount',
             '-bid_time'
         ).first()
@@ -60,7 +77,7 @@ def update_auction_status(auction):
             new_highest_bid = highest_bid.amount
             new_highest_bidder = highest_bid.buyer
         else:
-            new_highest_bid = auction.starting_bid
+            new_highest_bid = locked_auction.starting_bid
             new_highest_bidder = None
 
     # -----------------------------------------------------
@@ -71,7 +88,7 @@ def update_auction_status(auction):
 
         new_status = 'CLOSED'
 
-        highest_bid = auction.bids.order_by(
+        highest_bid = locked_auction.bids.order_by(
             '-amount',
             '-bid_time'
         ).first()
@@ -80,24 +97,39 @@ def update_auction_status(auction):
             new_highest_bid = highest_bid.amount
             new_highest_bidder = highest_bid.buyer
         else:
-            new_highest_bid = auction.starting_bid
+            new_highest_bid = locked_auction.starting_bid
             new_highest_bidder = None
 
     # -----------------------------------------------------
     # UPDATE AUCTION
     # -----------------------------------------------------
 
-    auction.status = new_status
-    auction.current_highest_bid = new_highest_bid
-    auction.highest_bidder = new_highest_bidder
+    locked_auction.status = new_status
+    locked_auction.current_highest_bid = new_highest_bid
+    locked_auction.highest_bidder = new_highest_bidder
 
-    auction.save(
+    locked_auction.save(
         update_fields=[
             'status',
             'current_highest_bid',
             'highest_bidder'
         ]
     )
+
+    if new_status == 'CLOSED' and previous_status != 'CLOSED' and new_highest_bidder:
+        Notification.objects.create(
+            user=new_highest_bidder,
+            notification_type='WINNER',
+            title=f"You won {auction.product.name}",
+            message=(
+                f"The auction for {locked_auction.product.name} has ended. "
+                f"Your winning bid was ₹{new_highest_bid}."
+            ),
+        )
+
+    auction.status = locked_auction.status
+    auction.current_highest_bid = locked_auction.current_highest_bid
+    auction.highest_bidder = locked_auction.highest_bidder
 
     return auction
 
@@ -207,118 +239,70 @@ def auction_detail(request, auction_id):
 
 @login_required
 def place_bid(request, auction_id):
-
-    auction = get_object_or_404(
-        Auction.objects.select_related(
-            'product'
-        ),
-        id=auction_id
-    )
-
-    # Always refresh status before accepting a bid.
-    auction = update_auction_status(auction)
-
     if request.method != 'POST':
-        return redirect(
-            'auction_detail',
-            auction_id=auction.id
+        return redirect('auction_detail', auction_id=auction_id)
+
+    def reject(message):
+        messages.error(request, message)
+        return redirect('auction_detail', auction_id=auction_id)
+
+    # Keep the lock until both the bid and its auction summary are saved.
+    with transaction.atomic():
+        auction = get_object_or_404(
+            Auction.objects.select_for_update().select_related('product'),
+            id=auction_id
         )
+        update_auction_status(auction)
 
-    # Seller cannot bid on their own auction.
-    if auction.product.seller_id == request.user.id:
-        messages.error(
-            request,
-            'You cannot bid on your own auction.'
-        )
-
-        return redirect(
-            'auction_detail',
-            auction_id=auction.id
-        )
-
-    # Auction must be live.
-    if auction.status != 'ACTIVE':
-
-        if auction.status == 'SCHEDULED':
-            messages.error(
-                request,
-                'This auction has not started yet.'
-            )
-
-        elif auction.status == 'CLOSED':
-            messages.error(
-                request,
-                'This auction has already ended.'
-            )
-
+        if auction.product.seller_id == request.user.id:
+            response = reject('You cannot bid on your own auction.')
+        elif auction.status != 'ACTIVE':
+            response = reject({
+                'SCHEDULED': 'This auction has not started yet.',
+                'CLOSED': 'This auction has already ended.',
+            }.get(auction.status, 'Bidding is not available for this auction.'))
         else:
-            messages.error(
-                request,
-                'Bidding is not available for this auction.'
+            try:
+                amount = Decimal(request.POST.get('amount', '').strip())
+            except (InvalidOperation, ValueError):
+                amount = None
+
+            valid_amount = (
+                amount is not None
+                and amount.is_finite()
+                and amount > auction.current_highest_bid
+                and amount.as_tuple().exponent >= -2
+                and len(amount.as_tuple().digits) <= 12
+                and amount.adjusted() < 10
             )
+            if not valid_amount:
+                response = reject(
+                    f'Enter a valid bid greater than ₹{auction.current_highest_bid} '
+                    'with at most two decimal places.'
+                )
+            else:
+                previous_highest_bidder = auction.highest_bidder
+                Bid.objects.create(auction=auction, buyer=request.user, amount=amount)
+                auction.current_highest_bid = amount
+                auction.highest_bidder = request.user
+                auction.save(update_fields=['current_highest_bid', 'highest_bidder'])
+                if previous_highest_bidder and previous_highest_bidder != request.user:
+                    Notification.objects.create(
+                        user=previous_highest_bidder,
+                        title=f"You were outbid on {auction.product.name}",
+                        message=f"A new bid of ₹{amount} was placed on {auction.product.name}.",
+                        notification_type='OUTBID',
+                    )
+                Notification.objects.create(
+                    user=auction.product.seller,
+                    title=f"New bid on {auction.product.name}",
+                    message=f"{request.user.username} bid ₹{amount} on your auction.",
+                    notification_type='BID',
+                )
+                response = None
 
-        return redirect(
-            'auction_detail',
-            auction_id=auction.id
-        )
-
-    # Get amount from form.
-    amount_text = request.POST.get('amount', '').strip()
-
-    if not amount_text:
-        messages.error(
-            request,
-            'Please enter a bid amount.'
-        )
-
-        return redirect(
-            'auction_detail',
-            auction_id=auction.id
-        )
-
-    # Convert amount safely.
-    try:
-        amount = Decimal(amount_text)
-    except (InvalidOperation, ValueError):
-        messages.error(
-            request,
-            'Please enter a valid bid amount.'
-        )
-
-        return redirect(
-            'auction_detail',
-            auction_id=auction.id
-        )
-
-    # Bid must be greater than current highest bid.
-    if amount <= auction.current_highest_bid:
-        messages.error(
-            request,
-            f'Your bid must be greater than ₹{auction.current_highest_bid}.'
-        )
-
-        return redirect(
-            'auction_detail',
-            auction_id=auction.id
-        )
-
-    # Create bid.
-    Bid.objects.create(
-        auction=auction,
-        buyer=request.user,
-        amount=amount
-    )
-
-    # Update highest bid.
-    auction.current_highest_bid = amount
-    auction.highest_bidder = request.user
-
-    auction.save(
-        update_fields=[
-            'current_highest_bid',
-            'highest_bidder'
-        ]
-    )
+    if response:
+        return response
 
     messages.success(
         request,

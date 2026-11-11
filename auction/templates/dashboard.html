@@ -198,7 +198,7 @@
 
                         class="nav-link notification-bell"
 
-                        href="#notifications"
+                        href="{% url 'notifications' %}"
 
                         aria-label="Notifications"
 
@@ -353,6 +353,8 @@
      ===================================================== -->
 
 <main class="container dashboard-container py-4">
+
+    {% include 'partials/messages.html' %}
 
     <!-- =================================================
 
